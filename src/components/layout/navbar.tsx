@@ -1,9 +1,10 @@
+
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+// import { signOut } from "firebase/auth"; // No longer directly used here
+// import { auth } from "@/lib/firebase/config"; // No longer directly used here
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,18 +20,12 @@ import { ThemeToggleButton } from "./theme-toggle-button";
 import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User } from "lucide-react";
 
 export function Navbar() {
-  const { user, setIsManuallySignedOut } = useAuth();
+  const { user, logout } = useAuth(); // useAuth now provides the logout function
   const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setIsManuallySignedOut(true);
-      router.push("/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      // Handle error (e.g., show a toast message)
-    }
+  const handleLogoutClick = async () => {
+    await logout(); // Call the logout from AuthContext
+    router.push("/login");
   };
 
   const getInitials = (name?: string | null) => {
@@ -96,7 +91,7 @@ export function Navbar() {
                   <span>Settings</span>
                 </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={handleLogoutClick}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
