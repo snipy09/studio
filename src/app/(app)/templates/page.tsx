@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -5,32 +6,59 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { prebuiltTemplates } from "@/data/templates";
 import { PlusCircle, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
-// import { useAuth } from "@/contexts/auth-context"; // If needed for creating flow
-// import { createFlowFromTemplate } from "@/lib/firebase/firestore"; // Placeholder
 import { useToast } from "@/hooks/use-toast";
+import { saveStoredFlow } from "@/lib/flow-storage";
+import type { Flow, Step, StepStatus } from "@/lib/types";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function TemplatesPage() {
   const router = useRouter();
-  // const { user } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleUseTemplate = async (templateId: string) => {
-    // const selectedTemplate = prebuiltTemplates.find(t => t.id === templateId);
-    // if (!selectedTemplate || !user) {
-    //   toast({ title: "Error", description: "Could not use template.", variant: "destructive" });
-    //   return;
-    // }
-    // try {
-    //   // const newFlowId = await createFlowFromTemplate(user.uid, selectedTemplate);
-    //   // router.push(`/flow/${newFlowId}`);
-    //   toast({ title: "Flow Created", description: `New flow "${selectedTemplate.name}" created from template.`});
-    // } catch (error) {
-    //   console.error("Error creating flow from template:", error);
-    //   toast({ title: "Error", description: "Failed to create flow from template.", variant: "destructive" });
-    // }
-    alert(`Using template: ${templateId}. Firestore integration for creating flow from template to be implemented.`);
-    // For now, simulate redirecting to a new flow page (which doesn't exist yet based on this template)
-    // router.push(`/flow/new-${templateId.replace('template-','')}`);
+    const selectedTemplate = prebuiltTemplates.find(t => t.id === templateId);
+    if (!selectedTemplate) {
+      toast({ title: "Error", description: "Template not found.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const now = new Date().toISOString();
+      const newFlowId = `flow-tpl-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      // Create new step instances with unique IDs
+      const newSteps: Step[] = selectedTemplate.steps.map(templateStep => ({
+        ...templateStep,
+        id: `step-${newFlowId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        status: "todo" as StepStatus, // Reset status
+        createdAt: now,
+        updatedAt: now,
+        // Resetting other potentially dynamic fields from template or keeping them?
+        // For now, keep description, priority, difficulty, estimatedTime from template if they exist.
+        // deadline: undefined, // Optionally reset deadline
+      }));
+
+      const newFlow: Flow = {
+        id: newFlowId,
+        name: `Copy of: ${selectedTemplate.name}`,
+        description: selectedTemplate.description,
+        userId: user?.uid || "dummy-user-uid-123", // Use dummy ID if no user
+        steps: newSteps,
+        stepsOrder: newSteps.map(step => step.id),
+        isTemplate: false, // This is now a user's flow
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      saveStoredFlow(newFlow);
+      toast({ title: "Flow Created", description: `New flow "${newFlow.name}" created from template.`});
+      router.push(`/flow/${newFlowId}`);
+
+    } catch (error) {
+      console.error("Error creating flow from template:", error);
+      toast({ title: "Error", description: "Failed to create flow from template.", variant: "destructive" });
+    }
   };
 
   return (

@@ -3,8 +3,6 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-// import { signOut } from "firebase/auth"; // No longer directly used here
-// import { auth } from "@/lib/firebase/config"; // No longer directly used here
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,14 +15,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggleButton } from "./theme-toggle-button";
+import { PomodoroTimer } from "@/components/tools/pomodoro-timer"; // Import PomodoroTimer
 import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User } from "lucide-react";
 
 export function Navbar() {
-  const { user, logout } = useAuth(); // useAuth now provides the logout function
+  const { user, logout } = useAuth(); 
   const router = useRouter();
 
   const handleLogoutClick = async () => {
-    await logout(); // Call the logout from AuthContext
+    await logout(); 
     router.push("/login");
   };
 
@@ -58,7 +57,8 @@ export function Navbar() {
             Templates
           </Link>
         </nav>
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="ml-auto flex items-center space-x-2"> {/* Reduced space for more items */}
+          <PomodoroTimer /> {/* Add Pomodoro Timer here */}
           <ThemeToggleButton />
           {user && (
             <DropdownMenu>
