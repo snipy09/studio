@@ -14,15 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Lightbulb, Loader2 } from "lucide-react";
 import { generateFlowFromDescription, type GenerateFlowFromDescriptionInput } from '@/ai/flows/generate-flow-from-description';
-
-// Type for the flow data expected by the dashboard
-type DashboardFlow = {
-  id: string;
-  name: string;
-  description: string;
-  stepCount: number;
-  lastUpdated: string;
-};
+import type { Flow, Step } from "@/lib/types"; // Import Flow and Step types
+import { useAuth } from '@/contexts/auth-context';
 
 const formSchema = z.object({
   description: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
@@ -34,11 +27,12 @@ const formSchema = z.object({
 type AiFlowGeneratorDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onFlowCreated: (newFlow: DashboardFlow) => void;
+  onFlowCreated: (newFlow: Flow) => void; // Expect a full Flow object
 };
 
 export function AiFlowGeneratorDialog({ open, onOpenChange, onFlowCreated }: AiFlowGeneratorDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,21 +55,33 @@ export function AiFlowGeneratorDialog({ open, onOpenChange, onFlowCreated }: AiF
         resources: values.resources,
       };
       const result = await generateFlowFromDescription(aiInput);
-      
+
       if (result.flow && result.flow.length > 0) {
-        const newFlowName = `AI: ${values.description.substring(0,30)}${values.description.length > 30 ? '...' : ''}`;
-        const newFlow: DashboardFlow = {
-          id: `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+        const now = new Date().toISOString();
+        const newSteps: Step[] = result.flow.map((stepName, index) => ({
+          id: `step-ai-${Date.now()}-${index}`,
+          name: stepName,
+          status: "todo",
+          createdAt: now,
+          updatedAt: now,
+        }));
+        
+        const newFlowName = `AI: ${values.description.substring(0, 30)}${values.description.length > 30 ? '...' : ''}`;
+        const newFlow: Flow = {
+          id: `flow-ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           name: newFlowName,
           description: values.description,
-          stepCount: result.flow.length,
-          lastUpdated: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+          userId: user?.uid || "dummy-user-uid-123",
+          steps: newSteps,
+          stepsOrder: newSteps.map(step => step.id),
+          createdAt: now,
+          updatedAt: now,
         };
-        
-        onFlowCreated(newFlow); // Pass the new flow data to the parent component
 
-        toast({ title: "AI Flow Generated!", description: `Flow "${newFlowName}" added to your dashboard with ${result.flow.length} steps.` });
-        onOpenChange(false); 
+        onFlowCreated(newFlow);
+
+        toast({ title: "AI Flow Generated!", description: `Flow "${newFlowName}" added with ${result.flow.length} steps.` });
+        onOpenChange(false);
         form.reset();
       } else {
         toast({ title: "AI Flow Generation Failed", description: "The AI couldn't generate a flow. Please try a different description.", variant: "destructive" });

@@ -12,15 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Loader2 } from "lucide-react";
-
-// Type for the flow data expected by the dashboard
-type DashboardFlow = {
-  id: string;
-  name: string;
-  description: string;
-  stepCount: number;
-  lastUpdated: string;
-};
+import type { Flow } from "@/lib/types"; // Import the main Flow type
+import { useAuth } from '@/contexts/auth-context';
 
 const formSchema = z.object({
   name: z.string().min(3, { message: "Flow name must be at least 3 characters." }),
@@ -30,11 +23,12 @@ const formSchema = z.object({
 type CreateFlowDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onFlowCreated: (newFlow: DashboardFlow) => void; 
+  onFlowCreated: (newFlow: Flow) => void; // Expect a full Flow object
 };
 
 export function CreateFlowDialog({ open, onOpenChange, onFlowCreated }: CreateFlowDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -48,20 +42,24 @@ export function CreateFlowDialog({ open, onOpenChange, onFlowCreated }: CreateFl
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      const newFlow: DashboardFlow = {
-        id: `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+      const now = new Date().toISOString();
+      const newFlow: Flow = {
+        id: `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         name: values.name,
-        description: values.description || "No description provided.",
-        stepCount: 0, // New flows start with 0 steps
-        lastUpdated: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        description: values.description || "",
+        userId: user?.uid || "dummy-user-uid-123", // Get actual user ID
+        steps: [],
+        stepsOrder: [],
+        createdAt: now,
+        updatedAt: now,
       };
-      
-      onFlowCreated(newFlow); // Pass the new flow data to the parent component
-      
-      toast({ title: "Flow Created!", description: `Flow "${values.name}" has been added to your dashboard.` });
-      
-      onOpenChange(false); 
-      form.reset(); 
+
+      onFlowCreated(newFlow); // Pass the new full flow data to the parent component
+
+      toast({ title: "Flow Created!", description: `Flow "${values.name}" has been added.` });
+
+      onOpenChange(false);
+      form.reset();
     } catch (error: any) {
       console.error("Error creating flow:", error);
       toast({
@@ -76,9 +74,9 @@ export function CreateFlowDialog({ open, onOpenChange, onFlowCreated }: CreateFl
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isSubmitting) { 
+      if (!isSubmitting) {
         onOpenChange(isOpen);
-        if (!isOpen) form.reset(); 
+        if (!isOpen) form.reset();
       }
     }}>
       <DialogContent className="sm:max-w-[480px]">

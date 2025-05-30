@@ -1,43 +1,35 @@
 
 "use client";
 
-import React from "react"; 
+import React, { useEffect } from "react";
 import type { NextPage } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { CreateFlowDialog } from "@/components/flow/create-flow-dialog"; 
-import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog"; 
+import { CreateFlowDialog } from "@/components/flow/create-flow-dialog";
+import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog";
 import Image from "next/image";
+import type { Flow } from "@/lib/types"; // Use the main Flow type
+import { getAllStoredFlows, saveStoredFlow } from "@/lib/flow-storage";
+import { formatDistanceToNow } from 'date-fns';
 
-// Define a type for the flows displayed on the dashboard
-type DashboardFlow = {
-  id: string;
-  name: string;
-  description: string;
-  stepCount: number;
-  lastUpdated: string;
-};
-
-// Initial mock data for flows
-const initialMockFlows: DashboardFlow[] = [
-  { id: "1", name: "New App UI Design", description: "Complete UI/UX for the mobile app.", stepCount: 5, lastUpdated: "2 days ago" },
-  { id: "2", name: "Marketing Campaign Q3", description: "Plan and execute Q3 marketing initiatives.", stepCount: 8, lastUpdated: "5 hours ago" },
-  { id: "3", name: "Personal Fitness Plan", description: "Weekly workout and meal plan.", stepCount: 7, lastUpdated: "1 week ago" },
-];
 
 const DashboardPage: NextPage = () => {
   const { user } = useAuth();
-  const [flows, setFlows] = React.useState<DashboardFlow[]>(initialMockFlows);
+  const [flows, setFlows] = React.useState<Flow[]>([]);
 
-  // State for dialogs
+  useEffect(() => {
+    setFlows(getAllStoredFlows());
+  }, []);
+
   const [isCreateFlowOpen, setIsCreateFlowOpen] = React.useState(false);
   const [isAiGeneratorOpen, setIsAiGeneratorOpen] = React.useState(false);
 
-  const handleAddFlow = (newFlow: DashboardFlow) => {
-    setFlows((prevFlows) => [newFlow, ...prevFlows]);
+  const handleAddFlow = (newFlow: Flow) => {
+    const updatedFlows = saveStoredFlow(newFlow);
+    setFlows(updatedFlows);
   };
 
   return (
@@ -52,27 +44,27 @@ const DashboardPage: NextPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <CreateFlowDialog 
-          open={isCreateFlowOpen} 
-          onOpenChange={setIsCreateFlowOpen} 
-          onFlowCreated={handleAddFlow} 
+        <CreateFlowDialog
+          open={isCreateFlowOpen}
+          onOpenChange={setIsCreateFlowOpen}
+          onFlowCreated={handleAddFlow}
         />
-        <Button 
-          size="lg" 
-          className="md:col-span-1" 
+        <Button
+          size="lg"
+          className="md:col-span-1"
           onClick={() => setIsCreateFlowOpen(true)}
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Create New Flow
         </Button>
-        
-        <AiFlowGeneratorDialog 
-          open={isAiGeneratorOpen} 
+
+        <AiFlowGeneratorDialog
+          open={isAiGeneratorOpen}
           onOpenChange={setIsAiGeneratorOpen}
-          onFlowCreated={handleAddFlow} 
+          onFlowCreated={handleAddFlow}
         />
-        <Button 
-          size="lg" 
-          variant="outline" 
+        <Button
+          size="lg"
+          variant="outline"
           className="md:col-span-1"
           onClick={() => setIsAiGeneratorOpen(true)}
         >
@@ -94,11 +86,13 @@ const DashboardPage: NextPage = () => {
               <Card key={flow.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                   <CardTitle className="font-headline">{flow.name}</CardTitle>
-                  <CardDescription>{flow.description}</CardDescription>
+                  <CardDescription>{flow.description || "No description."}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                  <p className="text-sm text-muted-foreground">Steps: {flow.stepCount}</p>
-                  <p className="text-sm text-muted-foreground">Last updated: {flow.lastUpdated}</p>
+                  <p className="text-sm text-muted-foreground">Steps: {flow.steps.length}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Last updated: {formatDistanceToNow(new Date(flow.updatedAt), { addSuffix: true })}
+                  </p>
                 </CardContent>
                 <CardFooter>
                   <Link href={`/flow/${flow.id}`} passHref legacyBehavior>
@@ -115,7 +109,7 @@ const DashboardPage: NextPage = () => {
             <p className="text-muted-foreground mb-4">
               Start by creating a new flow or using our AI generator.
             </p>
-            <Button 
+            <Button
               onClick={() => setIsCreateFlowOpen(true)}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Flow
@@ -132,12 +126,12 @@ const DashboardPage: NextPage = () => {
             <p className="text-sm text-muted-foreground">Break down complex projects into manageable steps on a visual flowboard.</p>
           </div>
           <div>
-            <Image src="https://placehold.co/600x400.png" alt="AI powered planning" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="artificial intelligence planning" />
+            <Image src="https://placehold.co/600x400.png" alt="AI powered planning" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="artificial intelligence planning"/>
             <h4 className="font-semibold text-lg mb-1 font-headline">AI-Powered Planning</h4>
             <p className="text-sm text-muted-foreground">Let our AI generate custom workflows tailored to your goals and resources.</p>
           </div>
           <div>
-            <Image src="https://placehold.co/600x400.png" alt="Achieve goals" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="goals achievement" />
+            <Image src="https://placehold.co/600x400.png" alt="Achieve goals" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="goals achievement"/>
             <h4 className="font-semibold text-lg mb-1 font-headline">Achieve More</h4>
             <p className="text-sm text-muted-foreground">Stay on track with deadlines, progress tracking, and smart suggestions.</p>
           </div>
