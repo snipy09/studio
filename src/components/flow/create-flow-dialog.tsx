@@ -12,9 +12,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Loader2 } from "lucide-react";
-// import { useAuth } from '@/contexts/auth-context'; // For when saving is implemented
-// import { useRouter } from 'next/navigation'; // For redirecting after save
-// import { createNewFlow } from '@/lib/firebase/firestore'; // Placeholder for Firestore function
+
+// Type for the flow data expected by the dashboard
+type DashboardFlow = {
+  id: string;
+  name: string;
+  description: string;
+  stepCount: number;
+  lastUpdated: string;
+};
 
 const formSchema = z.object({
   name: z.string().min(3, { message: "Flow name must be at least 3 characters." }),
@@ -24,12 +30,11 @@ const formSchema = z.object({
 type CreateFlowDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onFlowCreated: (newFlow: DashboardFlow) => void; 
 };
 
-export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) {
+export function CreateFlowDialog({ open, onOpenChange, onFlowCreated }: CreateFlowDialogProps) {
   const { toast } = useToast();
-  // const { user } = useAuth();
-  // const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -42,23 +47,21 @@ export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    // if (!user) {
-    //   toast({ title: "Error", description: "You must be logged in to create a flow.", variant: "destructive" });
-    //   setIsSubmitting(false);
-    //   return;
-    // }
-
     try {
-      // const newFlowId = await createNewFlow(user.uid, values.name, values.description);
-      // toast({ title: "Flow Created!", description: `Flow "${values.name}" has been successfully created.` });
-      // router.push(`/flow/${newFlowId}`);
+      const newFlow: DashboardFlow = {
+        id: `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+        name: values.name,
+        description: values.description || "No description provided.",
+        stepCount: 0, // New flows start with 0 steps
+        lastUpdated: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+      };
       
-      // Placeholder behavior:
-      console.log("New flow data:", values);
-      toast({ title: "Flow Created (Simulated)", description: `Flow "${values.name}" would be created. Firestore integration pending.` });
+      onFlowCreated(newFlow); // Pass the new flow data to the parent component
       
-      onOpenChange(false); // Close dialog
-      form.reset(); // Reset form
+      toast({ title: "Flow Created!", description: `Flow "${values.name}" has been added to your dashboard.` });
+      
+      onOpenChange(false); 
+      form.reset(); 
     } catch (error: any) {
       console.error("Error creating flow:", error);
       toast({
@@ -73,9 +76,9 @@ export function CreateFlowDialog({ open, onOpenChange }: CreateFlowDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isSubmitting) { // Prevent closing while submitting
+      if (!isSubmitting) { 
         onOpenChange(isOpen);
-        if (!isOpen) form.reset(); // Reset form if dialog is closed
+        if (!isOpen) form.reset(); 
       }
     }}>
       <DialogContent className="sm:max-w-[480px]">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,9 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Lightbulb, Loader2 } from "lucide-react";
 import { generateFlowFromDescription, type GenerateFlowFromDescriptionInput } from '@/ai/flows/generate-flow-from-description';
-// import { createFlowWithSteps } from '@/lib/firebase/firestore'; // Placeholder for Firestore
-// import { useAuth } from '@/contexts/auth-context';
-// import { useRouter } from 'next/navigation';
+
+// Type for the flow data expected by the dashboard
+type DashboardFlow = {
+  id: string;
+  name: string;
+  description: string;
+  stepCount: number;
+  lastUpdated: string;
+};
 
 const formSchema = z.object({
   description: z.string().min(10, { message: "Please describe your goal in at least 10 characters." }),
@@ -27,12 +34,11 @@ const formSchema = z.object({
 type AiFlowGeneratorDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onFlowCreated: (newFlow: DashboardFlow) => void;
 };
 
-export function AiFlowGeneratorDialog({ open, onOpenChange }: AiFlowGeneratorDialogProps) {
+export function AiFlowGeneratorDialog({ open, onOpenChange, onFlowCreated }: AiFlowGeneratorDialogProps) {
   const { toast } = useToast();
-  // const { user } = useAuth();
-  // const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -57,16 +63,19 @@ export function AiFlowGeneratorDialog({ open, onOpenChange }: AiFlowGeneratorDia
       const result = await generateFlowFromDescription(aiInput);
       
       if (result.flow && result.flow.length > 0) {
-        // if (user) {
-        //   const newFlowId = await createFlowWithSteps(user.uid, `AI: ${values.description.substring(0,30)}...`, result.flow, values.description);
-        //   toast({ title: "AI Flow Generated!", description: "Your new flow has been created and populated with steps." });
-        //   router.push(`/flow/${newFlowId}`);
-        // } else {
-        //   toast({ title: "Error", description: "You must be logged in to save the flow.", variant: "destructive" });
-        // }
-        toast({ title: "AI Flow Generated!", description: `Generated ${result.flow.length} steps. Integration to save flow pending.` });
-        console.log("Generated flow steps:", result.flow);
-        onOpenChange(false); // Close dialog on success
+        const newFlowName = `AI: ${values.description.substring(0,30)}${values.description.length > 30 ? '...' : ''}`;
+        const newFlow: DashboardFlow = {
+          id: `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+          name: newFlowName,
+          description: values.description,
+          stepCount: result.flow.length,
+          lastUpdated: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+        };
+        
+        onFlowCreated(newFlow); // Pass the new flow data to the parent component
+
+        toast({ title: "AI Flow Generated!", description: `Flow "${newFlowName}" added to your dashboard with ${result.flow.length} steps.` });
+        onOpenChange(false); 
         form.reset();
       } else {
         toast({ title: "AI Flow Generation Failed", description: "The AI couldn't generate a flow. Please try a different description.", variant: "destructive" });
@@ -84,12 +93,12 @@ export function AiFlowGeneratorDialog({ open, onOpenChange }: AiFlowGeneratorDia
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* Optional: If you want a trigger button outside this component
-      <DialogTrigger asChild>
-        <Button variant="outline"><Lightbulb className="mr-2 h-4 w-4" /> Plan with AI</Button>
-      </DialogTrigger>
-      */}
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isLoading) {
+        onOpenChange(isOpen);
+        if(!isOpen) form.reset();
+      }
+    }}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle className="flex items-center"><Lightbulb className="mr-2 h-5 w-5 text-primary" /> AI Flow Generator</DialogTitle>
