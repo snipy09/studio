@@ -8,7 +8,7 @@ import type { User as FirebaseUser, Auth, signOut as signOutType, onAuthStateCha
 import type { UserProfile } from "@/lib/types";
 
 // --- START DUMMY AUTH CONFIGURATION ---
-const DUMMY_AUTH_ENABLED = true; 
+export const DUMMY_AUTH_ENABLED = true; 
 
 const dummyUser: UserProfile = {
   uid: "dummy-user-uid-123",
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [fbSignOut, setFbSignOut] = useState<(() => typeof signOutType) | null>(null);
   const [fbOnAuthStateChanged, setFbOnAuthStateChanged] = useState<(() => typeof onAuthStateChangedType) | null>(null);
 
-  const _internalDummyLogin = useCallback(() => {
+  const dummyLogin = useCallback(() => {
     if (DUMMY_AUTH_ENABLED) {
       setUser(dummyUser);
       setLoading(false);
@@ -99,59 +99,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (DUMMY_AUTH_ENABLED) {
-      setLoading(false);
-      return; // No Firebase interaction needed for dummy mode's initial setup.
+      setLoading(false); 
+      return;
     }
 
     const loadFirebase = async () => {
       try {
-        // Dynamically import Firebase config and auth functions
         const { auth: firebaseAuthInstance } = await import("@/lib/firebase/config");
         const { signOut: signOutFn, onAuthStateChanged: onAuthStateChangedFn } = await import("firebase/auth");
         
-        if (firebaseAuthInstance) {
+        if (firebaseAuthInstance) { // Check if auth was successfully initialized in config.ts
             setFbAuthService(firebaseAuthInstance);
+            setFbSignOut(() => signOutFn); 
+            setFbOnAuthStateChanged(() => onAuthStateChangedFn);
         } else {
-            console.error("Firebase auth instance not loaded from config.");
+            console.warn("Firebase Auth service not loaded from config. Real auth will not function.");
+            setLoading(false);
         }
-        setFbSignOut(() => signOutFn); // Store a function that returns signOutFn
-        setFbOnAuthStateChanged(() => onAuthStateChangedFn); // Store a function that returns onAuthStateChangedFn
       } catch (error) {
-        console.error("Failed to load Firebase services:", error);
-        // This error (e.g., auth/invalid-api-key from config.ts) might be caught here client-side
+        console.error("Failed to load Firebase services for AuthContext:", error);
         setLoading(false);
       }
     };
 
     loadFirebase();
-  }, []); // Runs once on mount if not in dummy mode
+  }, [DUMMY_AUTH_ENABLED]); 
 
   useEffect(() => {
-    // This effect attaches the onAuthStateChanged listener once Firebase services are loaded
-    if (DUMMY_AUTH_ENABLED) {
-      // Loading state is already handled, and dummy login is manual via button
+    if (DUMMY_AUTH_ENABLED || !fbAuthService || !fbOnAuthStateChanged) {
+      if (!DUMMY_AUTH_ENABLED && !fbAuthService && !loading) {
+        // This means loadFirebase() completed, but fbAuthService is still null (init failed in config or here)
+         console.warn("Firebase auth service not available for onAuthStateChanged listener. Real auth will not function.");
+      }
+      setLoading(false); // Ensure loading is false if we can't set up listener
       return;
     }
-
-    if (fbAuthService && fbOnAuthStateChanged) {
-      const onAuthStateChangedFn = fbOnAuthStateChanged();
-      const unsubscribe = onAuthStateChangedFn(fbAuthService, (currentFbUser: FirebaseUser | null) => {
-        if (currentFbUser) {
-          setUser(currentFbUser as UserProfile);
-          setIsManuallySignedOut(false);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      });
-      return () => unsubscribe();
-    } else if (!fbAuthService && !loading && !DUMMY_AUTH_ENABLED) {
-      // Firebase services might have failed to load, or still loading
-      // If loading is false here, it means loadFirebase() completed, possibly with an error.
-      console.warn("Firebase auth service not available for auth state listener. App might not function correctly with real auth.");
-      setLoading(false); // Ensure loading is false if it hasn't been set by onAuthStateChanged
-    }
-  }, [fbAuthService, fbOnAuthStateChanged, loading, DUMMY_AUTH_ENABLED]); // Re-run if services become available
+    
+    const onAuthStateChangedFn = fbOnAuthStateChanged();
+    const unsubscribe = onAuthStateChangedFn(fbAuthService, (currentFbUser: FirebaseUser | null) => {
+      if (currentFbUser) {
+        setUser(currentFbUser as UserProfile);
+        setIsManuallySignedOut(false);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [DUMMY_AUTH_ENABLED, fbAuthService, fbOnAuthStateChanged, loading]);
 
   return (
     <AuthContext.Provider value={{
@@ -160,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isManuallySignedOut,
       setIsManuallySignedOut,
       logout: handleAppLogout,
-      dummyLogin: DUMMY_AUTH_ENABLED ? _internalDummyLogin : undefined
+      dummyLogin: DUMMY_AUTH_ENABLED ? dummyLogin : undefined
     }}>
       {children}
     </AuthContext.Provider>
@@ -174,5 +169,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

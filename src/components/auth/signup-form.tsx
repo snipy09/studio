@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { auth as firebaseAuth } from "@/lib/firebase/config"; // firebaseAuth can be null
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -20,6 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { DUMMY_AUTH_ENABLED } from "@/contexts/auth-context";
+
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -44,14 +47,20 @@ export function SignupForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (DUMMY_AUTH_ENABLED) {
+      toast({ title: "Demo Mode", description: "Email/Password signup is disabled in demo mode. Use Dummy Login.", variant: "default" });
+      return;
+    }
+    if (!firebaseAuth) {
+      toast({ title: "Authentication Error", description: "Firebase Auth is not available. Please check configuration.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, values.email, values.password);
       await updateProfile(userCredential.user, { displayName: values.displayName });
       
-      // You might want to create a user document in Firestore here
-      // e.g., await createUserProfileDocument(userCredential.user, { displayName: values.displayName });
-
       toast({ title: "Account Created", description: "Welcome to FlowForge!" });
       router.push("/dashboard");
     } catch (error: any) {
@@ -67,12 +76,19 @@ export function SignupForm() {
   }
 
   async function handleGoogleSignIn() {
+     if (DUMMY_AUTH_ENABLED) {
+      toast({ title: "Demo Mode", description: "Google Sign-Up is disabled in demo mode. Use Dummy Login.", variant: "default" });
+      return;
+    }
+    if (!firebaseAuth) {
+      toast({ title: "Authentication Error", description: "Firebase Auth is not available. Please check configuration.", variant: "destructive" });
+      setIsGoogleLoading(false);
+      return;
+    }
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      // Check if user is new or existing, create profile if new
-      // For simplicity, we'll assume this is fine for now
+      await signInWithPopup(firebaseAuth, provider);
       toast({ title: "Sign Up Successful", description: "Welcome!" });
       router.push("/dashboard");
     } catch (error: any) {
@@ -147,7 +163,7 @@ export function SignupForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full" disabled={isLoading || DUMMY_AUTH_ENABLED && !firebaseAuth}>
           {isLoading ? "Creating account..." : "Create Account"}
         </Button>
         <div className="relative">
@@ -160,7 +176,7 @@ export function SignupForm() {
             </span>
           </div>
         </div>
-        <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+        <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || DUMMY_AUTH_ENABLED && !firebaseAuth}>
           {isGoogleLoading ? (
             "Signing up..."
           ) : (

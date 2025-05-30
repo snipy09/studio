@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -5,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { auth as firebaseAuth } from "@/lib/firebase/config"; // firebaseAuth can be null
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,8 +19,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ChromeIcon } from "lucide-react"; // Using ChromeIcon as a placeholder for Google
+import { Eye, EyeOff } from "lucide-react"; 
 import Link from "next/link";
+import { DUMMY_AUTH_ENABLED } from "@/contexts/auth-context";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -42,9 +44,18 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (DUMMY_AUTH_ENABLED) {
+      toast({ title: "Demo Mode", description: "Email/Password login is disabled in demo mode. Use Dummy Login.", variant: "default" });
+      return;
+    }
+    if (!firebaseAuth) {
+      toast({ title: "Authentication Error", description: "Firebase Auth is not available. Please check configuration.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      await signInWithEmailAndPassword(firebaseAuth, values.email, values.password);
       toast({ title: "Login Successful", description: "Welcome back!" });
       router.push("/dashboard");
     } catch (error: any) {
@@ -60,10 +71,19 @@ export function LoginForm() {
   }
 
   async function handleGoogleSignIn() {
+    if (DUMMY_AUTH_ENABLED) {
+      toast({ title: "Demo Mode", description: "Google Sign-In is disabled in demo mode. Use Dummy Login.", variant: "default" });
+      return;
+    }
+    if (!firebaseAuth) {
+      toast({ title: "Authentication Error", description: "Firebase Auth is not available. Please check configuration.", variant: "destructive" });
+      setIsGoogleLoading(false);
+      return;
+    }
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithPopup(firebaseAuth, provider);
       toast({ title: "Login Successful", description: "Welcome!" });
       router.push("/dashboard");
     } catch (error: any) {
@@ -125,7 +145,7 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full" disabled={isLoading || DUMMY_AUTH_ENABLED && !firebaseAuth}>
           {isLoading ? "Logging in..." : "Log In"}
         </Button>
          <div className="relative">
@@ -138,7 +158,7 @@ export function LoginForm() {
             </span>
           </div>
         </div>
-        <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+        <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || DUMMY_AUTH_ENABLED && !firebaseAuth}>
           {isGoogleLoading ? (
             "Signing in..."
           ) : (
