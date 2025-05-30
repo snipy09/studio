@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase/config";
 import type { UserProfile } from "@/lib/types";
 
 // --- START DUMMY AUTH CONFIGURATION ---
-const DUMMY_AUTH_ENABLED = true; // Ensures dummy mode is active
+const DUMMY_AUTH_ENABLED = true; // Set to true to enable dummy login button and functionality
 
 const dummyUser: UserProfile = {
   uid: "dummy-user-uid-123",
@@ -62,7 +62,8 @@ interface AuthContextType {
   loading: boolean;
   isManuallySignedOut: boolean;
   setIsManuallySignedOut: (value: boolean) => void;
-  logout: () => Promise<void>; // Added logout function
+  logout: () => Promise<void>;
+  dummyLogin?: () => void; // Optional: only available if DUMMY_AUTH_ENABLED is true
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,36 +74,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isManuallySignedOut, setIsManuallySignedOut] = useState(false);
 
   const handleAppLogout = async () => {
-    if (DUMMY_AUTH_ENABLED) {
-      setUser(null);
-      setIsManuallySignedOut(true);
-    } else {
+    setUser(null);
+    setIsManuallySignedOut(true); // Always set this true on any logout action
+    if (!DUMMY_AUTH_ENABLED) {
       try {
         await signOut(auth);
-        // onAuthStateChanged will handle setting user to null
-        setIsManuallySignedOut(true);
       } catch (error) {
         console.error("Error signing out with Firebase:", error);
-        // Fallback or error handling for real sign out
-        setUser(null); // Ensure user is cleared
-        setIsManuallySignedOut(true);
       }
     }
   };
 
+  const _internalDummyLogin = () => {
+    // This function is only called if DUMMY_AUTH_ENABLED is true
+    setUser(dummyUser);
+    setLoading(false);
+    setIsManuallySignedOut(false);
+  };
+
   useEffect(() => {
     if (DUMMY_AUTH_ENABLED) {
-      setUser(dummyUser);
-      setLoading(false);
-      setIsManuallySignedOut(false); // User is "logged in"
-      return () => {}; // No Firebase listener to unsubscribe
+      setLoading(false); // In dummy mode, loading is done. User is initially null until dummyLogin is called.
+      return; // No Firebase listener needed for dummy mode.
     }
 
-    // Original Firebase auth logic
+    // Original Firebase auth logic (only runs if DUMMY_AUTH_ENABLED is false)
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         setUser(firebaseUser as UserProfile);
-        setIsManuallySignedOut(false); // If user is authenticated, they are not manually signed out.
+        setIsManuallySignedOut(false);
       } else {
         setUser(null);
       }
@@ -113,7 +113,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []); // Empty dependency array to run once on mount
 
   return (
-    <AuthContext.Provider value={{ user, loading, isManuallySignedOut, setIsManuallySignedOut, logout: handleAppLogout }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      isManuallySignedOut,
+      setIsManuallySignedOut,
+      logout: handleAppLogout,
+      dummyLogin: DUMMY_AUTH_ENABLED ? _internalDummyLogin : undefined
+    }}>
       {children}
     </AuthContext.Provider>
   );
