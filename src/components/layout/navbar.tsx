@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggleButton } from "./theme-toggle-button";
 import { PomodoroTimer } from "@/components/tools/pomodoro-timer"; // Import PomodoroTimer
-import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User, Sparkles } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth(); 
@@ -55,6 +55,12 @@ export function Navbar() {
             className="transition-colors hover:text-foreground/80 text-foreground/60"
           >
             Templates
+          </Link>
+          <Link
+            href="/discover"
+            className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center"
+          >
+            <Sparkles className="mr-1 h-4 w-4" /> Discover
           </Link>
         </nav>
         <div className="ml-auto flex items-center space-x-2"> {/* Reduced space for more items */}
