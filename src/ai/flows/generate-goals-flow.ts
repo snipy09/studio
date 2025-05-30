@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateGoalsInputSchema = z.object({
+const GenerateGoalsInputSchema = z.object({
   energizingActivities: z.string().describe("User's answer to: What activities make you feel most energized and engaged?"),
   solveProblem: z.string().describe("User's answer to: If you had unlimited time and resources, what problem would you try to solve?"),
   skillsToLearn: z.string().describe("User's answer to: What skills do you want to learn or improve in the next year?"),
@@ -24,7 +24,7 @@ const ProjectSuggestionSchema = z.object({
   firstSteps: z.array(z.string()).describe("An array of 2-3 actionable first steps for this project."),
 });
 
-export const GenerateGoalsOutputSchema = z.object({
+const GenerateGoalsOutputSchema = z.object({
   suggestedGoals: z.array(z.string()).describe("An array of 2-3 potential long-term or overarching goals the user might pursue, phrased as aspirations."),
   projectSuggestions: z.array(ProjectSuggestionSchema).describe("An array of 1-2 concrete project ideas to help the user get started, including a few initial steps for each project."),
 });
