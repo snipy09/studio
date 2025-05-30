@@ -1,13 +1,15 @@
+
 "use client";
 
+import React from "react"; // Import React
 import type { NextPage } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-// import { CreateFlowDialog } from "@/components/flow/create-flow-dialog"; // Placeholder
-// import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog"; // Placeholder
+import { CreateFlowDialog } from "@/components/flow/create-flow-dialog"; 
+import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog"; 
 import Image from "next/image";
 
 // Mock data for flows - replace with actual data fetching
@@ -21,8 +23,8 @@ const DashboardPage: NextPage = () => {
   const { user } = useAuth();
 
   // State for dialogs
-  // const [isCreateFlowOpen, setIsCreateFlowOpen] = React.useState(false);
-  // const [isAiGeneratorOpen, setIsAiGeneratorOpen] = React.useState(false);
+  const [isCreateFlowOpen, setIsCreateFlowOpen] = React.useState(false);
+  const [isAiGeneratorOpen, setIsAiGeneratorOpen] = React.useState(false);
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
@@ -36,23 +38,21 @@ const DashboardPage: NextPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {/* <CreateFlowDialog open={isCreateFlowOpen} onOpenChange={setIsCreateFlowOpen} /> */}
+        <CreateFlowDialog open={isCreateFlowOpen} onOpenChange={setIsCreateFlowOpen} />
         <Button 
           size="lg" 
           className="md:col-span-1" 
-          // onClick={() => setIsCreateFlowOpen(true)}
-          onClick={() => alert("Create New Flow dialog will be implemented here.")}
+          onClick={() => setIsCreateFlowOpen(true)}
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Create New Flow
         </Button>
         
-        {/* <AiFlowGeneratorDialog open={isAiGeneratorOpen} onOpenChange={setIsAiGeneratorOpen} /> */}
+        <AiFlowGeneratorDialog open={isAiGeneratorOpen} onOpenChange={setIsAiGeneratorOpen} />
         <Button 
           size="lg" 
           variant="outline" 
           className="md:col-span-1"
-          // onClick={() => setIsAiGeneratorOpen(true)}
-          onClick={() => alert("AI Flow Generator dialog will be implemented here.")}
+          onClick={() => setIsAiGeneratorOpen(true)}
         >
           <Lightbulb className="mr-2 h-5 w-5" /> AI Flow Generator
         </Button>
@@ -94,8 +94,7 @@ const DashboardPage: NextPage = () => {
               Start by creating a new flow or using our AI generator.
             </p>
             <Button 
-              // onClick={() => setIsCreateFlowOpen(true)}
-              onClick={() => alert("Create New Flow dialog will be implemented here.")}
+              onClick={() => setIsCreateFlowOpen(true)}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Flow
             </Button>
