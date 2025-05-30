@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase/config";
 import type { UserProfile } from "@/lib/types";
 
 // --- START DUMMY AUTH CONFIGURATION ---
-const DUMMY_AUTH_ENABLED = true;
+const DUMMY_AUTH_ENABLED = true; // Ensures dummy mode is active
 
 const dummyUser: UserProfile = {
   uid: "dummy-user-uid-123",
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         setUser(firebaseUser as UserProfile);
-        // setIsManuallySignedOut(false); // If user is authenticated, they are not manually signed out.
+        setIsManuallySignedOut(false); // If user is authenticated, they are not manually signed out.
       } else {
         setUser(null);
       }
