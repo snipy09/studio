@@ -1,19 +1,29 @@
+
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { Navbar } from "@/components/layout/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal"; // Import the modal
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading, isManuallySignedOut } = useAuth();
   const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (!loading && !user && !isManuallySignedOut) {
       router.push("/login");
+    }
+    if (!loading && user) {
+      // Check if onboarding has been completed
+      const onboardingCompleted = localStorage.getItem("flowforge_onboarding_completed_v1");
+      if (!onboardingCompleted) {
+        setShowOnboarding(true);
+      }
     }
   }, [user, loading, router, isManuallySignedOut]);
 
@@ -55,6 +65,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">
         {children}
       </main>
+      {showOnboarding && <OnboardingModal />}
     </div>
   );
 }

@@ -60,9 +60,14 @@ export function Navbar() {
           >
             <Sparkles className="mr-1 h-4 w-4" /> Discover
           </Link>
+          <Link
+            href="/templates"
+            className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center"
+          >
+            <LayoutGrid className="mr-1 h-4 w-4" /> Templates
+          </Link>
         </nav>
         <div className="ml-auto flex items-center space-x-2"> 
-          {/* PomodoroTimer and ThemeToggleButton removed from here */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
