@@ -90,6 +90,22 @@ export interface GenerateDetailedDiscoveryPlanOutput {
   projectBreakdowns: ProjectBreakdown[];
 }
 
+export interface Task {
+  id: string;
+  name: string;
+  isCompleted: boolean;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  flowId?: string;
+  flowName?: string; // For display purposes
+  stepId?: string;
+  stepName?: string; // For display purposes
+  dueDate?: string; // ISO date string
+  notes?: string;
+}
+
+
 // (The old GenerateGoalsInput and GenerateGoalsOutput can be removed or kept if used elsewhere,
 // but the new flow will use GenerateDetailedDiscoveryPlanInput/Output)
 export type { GenerateGoalsInput, GenerateGoalsOutput } from "@/ai/flows/generate-goals-flow";
+

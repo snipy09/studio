@@ -6,7 +6,9 @@ import type { NextPage } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban, Trash2, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PlusCircle, Lightbulb, FolderKanban, Trash2, Loader2, ListTodo, CalendarDays, XCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,9 +22,10 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { CreateFlowDialog } from "@/components/flow/create-flow-dialog";
 import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog";
-import type { Flow, FlowSuggestedResources } from "@/lib/types";
+import type { Flow, Task } from "@/lib/types";
 import { getAllStoredFlows, saveStoredFlow, deleteStoredFlowById } from "@/lib/flow-storage";
-import { formatDistanceToNow } from 'date-fns';
+import { getAllStoredTasks, saveStoredTask, deleteStoredTaskById, toggleTaskCompletion } from "@/lib/task-storage";
+import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { suggestFlowResources, type SuggestFlowResourcesInput } from "@/ai/flows/suggest-flow-resources";
 
@@ -31,21 +34,25 @@ const DashboardPage: NextPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [flows, setFlows] = useState<Flow[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTaskName, setNewTaskName] = useState("");
   const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
   const [isAiGeneratorOpen, setIsAiGeneratorOpen] = useState(false);
   const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
-  const [isFetchingResources, setIsFetchingResources] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [isProcessingFlow, setIsProcessingFlow] = useState(false);
 
   useEffect(() => {
     setFlows(getAllStoredFlows());
+    setTasks(getAllStoredTasks());
   }, []);
 
   const handleAddFlow = useCallback(async (newFlowData: Omit<Flow, 'createdAt' | 'updatedAt' | 'id'> & { id?: string }) => {
-    setIsFetchingResources(true);
+    setIsProcessingFlow(true);
     const now = new Date().toISOString();
     const flowId = newFlowData.id || `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     
-    const flowToSave: Flow = {
+    let flowToSave: Flow = {
       ...newFlowData,
       id: flowId,
       userId: user?.uid || "dummy-user-uid-123",
@@ -55,47 +62,47 @@ const DashboardPage: NextPage = () => {
       stepsOrder: newFlowData.stepsOrder || (newFlowData.steps || []).map(s => s.id),
     };
 
-    // Initial save so flow appears quickly
     let currentFlows = saveStoredFlow(flowToSave);
     setFlows(currentFlows);
-    toast({ title: "Flow Created!", description: `"${flowToSave.name}" added. Fetching resources...` });
+    toast({ title: "Flow Created!", description: `"${flowToSave.name}" added.` });
 
-    try {
-      const resourceInput: SuggestFlowResourcesInput = {
-        flowName: flowToSave.name,
-        flowDescription: flowToSave.description,
-      };
-      const resources = await suggestFlowResources(resourceInput);
-      
-      const flowWithResources: Flow = {
-        ...flowToSave,
-        suggestedResources: resources,
-        updatedAt: new Date().toISOString(), // Update timestamp
-      };
-      
-      currentFlows = saveStoredFlow(flowWithResources);
-      setFlows(currentFlows);
-      toast({ title: "Resources Added", description: `AI found some helpful resources for "${flowToSave.name}".` });
+    if (!newFlowData.suggestedResources) { // Only fetch if not already provided (e.g., by AI generator)
+      toast({ title: "Fetching Resources...", description: `AI is finding resources for "${flowToSave.name}".`});
+      try {
+        const resourceInput: SuggestFlowResourcesInput = {
+          flowName: flowToSave.name,
+          flowDescription: flowToSave.description,
+        };
+        const resources = await suggestFlowResources(resourceInput);
+        
+        const flowWithResources: Flow = {
+          ...flowToSave,
+          suggestedResources: resources,
+          updatedAt: new Date().toISOString(),
+        };
+        
+        currentFlows = saveStoredFlow(flowWithResources);
+        setFlows(currentFlows);
+        toast({ title: "Resources Added", description: `AI found helpful resources for "${flowToSave.name}".` });
 
-    } catch (error: any) {
-      console.error("Error fetching resources for flow:", error);
-      toast({
-        title: "Resource Fetching Failed",
-        description: `Could not fetch AI resources for "${flowToSave.name}". You can try again later.`,
-        variant: "destructive",
-      });
-      // Flow is already saved without resources, which is fine.
-    } finally {
-      setIsFetchingResources(false);
+      } catch (error: any) {
+        console.error("Error fetching resources for flow:", error);
+        toast({
+          title: "Resource Fetching Failed",
+          description: `Could not fetch AI resources for "${flowToSave.name}".`,
+          variant: "destructive",
+        });
+      }
     }
+    setIsProcessingFlow(false);
   }, [user?.uid, toast]);
 
 
-  const openDeleteConfirmation = (flow: Flow) => {
+  const openDeleteFlowConfirmation = (flow: Flow) => {
     setFlowToDelete(flow);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDeleteFlow = () => {
     if (flowToDelete) {
       const updatedFlows = deleteStoredFlowById(flowToDelete.id);
       setFlows(updatedFlows);
@@ -104,6 +111,39 @@ const DashboardPage: NextPage = () => {
     }
   };
 
+  const handleAddTask = () => {
+    if (!newTaskName.trim()) {
+      toast({ title: "Task name empty", description: "Please enter a name for your task.", variant: "destructive" });
+      return;
+    }
+    const updatedTasks = saveStoredTask({ name: newTaskName.trim(), isCompleted: false });
+    setTasks(updatedTasks);
+    setNewTaskName("");
+    toast({ title: "Task Added", description: `"${newTaskName.trim()}" added to your tasks.` });
+  };
+
+  const handleToggleTask = (taskId: string) => {
+    const updatedTasks = toggleTaskCompletion(taskId);
+    setTasks(updatedTasks);
+  };
+
+  const openDeleteTaskConfirmation = (task: Task) => {
+    setTaskToDelete(task);
+  };
+
+  const handleConfirmDeleteTask = () => {
+    if (taskToDelete) {
+      const updatedTasks = deleteStoredTaskById(taskToDelete.id);
+      setTasks(updatedTasks);
+      toast({ title: "Task Deleted", description: `"${taskToDelete.name}" has been deleted.` });
+      setTaskToDelete(null);
+    }
+  };
+  
+  const pendingTasks = tasks.filter(task => !task.isCompleted).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const completedTasks = tasks.filter(task => task.isCompleted).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
       <div className="mb-8">
@@ -111,9 +151,96 @@ const DashboardPage: NextPage = () => {
           Welcome back, {user?.displayName?.split(" ")[0] || "User"}!
         </h1>
         <p className="text-muted-foreground">
-          Here are your current flows. Ready to get productive?
+          Here's your dashboard. Ready to get productive?
         </p>
       </div>
+
+      {/* Task List Card */}
+      <Card className="mb-12 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center font-headline"><ListTodo className="mr-3 h-6 w-6 text-primary" /> My Tasks</CardTitle>
+          <CardDescription>Manage your to-dos and stay on track.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 mb-4">
+            <Input
+              type="text"
+              placeholder="Add a new task..."
+              value={newTaskName}
+              onChange={(e) => setNewTaskName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(); }}
+              className="flex-grow"
+            />
+            <Button onClick={handleAddTask} disabled={!newTaskName.trim()}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Task
+            </Button>
+          </div>
+
+          {pendingTasks.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-md font-semibold text-muted-foreground mb-1">Pending</h3>
+              {pendingTasks.map(task => (
+                <div key={task.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-md hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id={`task-${task.id}`}
+                      checked={task.isCompleted}
+                      onCheckedChange={() => handleToggleTask(task.id)}
+                      aria-label={`Mark task ${task.name} as ${task.isCompleted ? 'incomplete' : 'complete'}`}
+                    />
+                    <label htmlFor={`task-${task.id}`} className={`flex-grow cursor-pointer ${task.isCompleted ? "line-through text-muted-foreground" : ""}`}>
+                      <span className="font-medium">{task.name}</span>
+                      {(task.flowName || task.dueDate) && (
+                        <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
+                          {task.flowName && <span>From: {task.flowName}{task.stepName ? ` / ${task.stepName}`: ''}</span>}
+                          {task.dueDate && <span className="inline-flex items-center"><CalendarDays className="mr-1 h-3 w-3"/> {format(new Date(task.dueDate), "MMM dd")}</span>}
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => openDeleteTaskConfirmation(task)} className="text-destructive hover:text-destructive/90 h-7 w-7">
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {completedTasks.length > 0 && (
+             <div className="mt-6 space-y-3">
+                <h3 className="text-md font-semibold text-muted-foreground mb-1">Completed</h3>
+                {completedTasks.map(task => (
+                <div key={task.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-md opacity-70">
+                   <div className="flex items-center gap-3">
+                    <Checkbox
+                      id={`task-${task.id}`}
+                      checked={task.isCompleted}
+                      onCheckedChange={() => handleToggleTask(task.id)}
+                    />
+                    <label htmlFor={`task-${task.id}`} className={`flex-grow cursor-pointer ${task.isCompleted ? "line-through text-muted-foreground" : ""}`}>
+                      <span className="font-medium">{task.name}</span>
+                       {(task.flowName || task.dueDate) && (
+                        <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
+                          {task.flowName && <span>From: {task.flowName}{task.stepName ? ` / ${task.stepName}`: ''}</span>}
+                          {task.dueDate && <span className="inline-flex items-center"><CalendarDays className="mr-1 h-3 w-3"/> {format(new Date(task.dueDate), "MMM dd")}</span>}
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                   <Button variant="ghost" size="icon" onClick={() => openDeleteTaskConfirmation(task)} className="text-destructive hover:text-destructive/90 h-7 w-7">
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+             </div>
+          )}
+
+          {tasks.length === 0 && (
+            <p className="text-center text-muted-foreground py-4">No tasks yet. Add one above!</p>
+          )}
+        </CardContent>
+      </Card>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         <CreateFlowDialog
@@ -125,9 +252,9 @@ const DashboardPage: NextPage = () => {
           size="lg"
           className="md:col-span-1"
           onClick={() => setIsCreateFlowOpen(true)}
-          disabled={isFetchingResources}
+          disabled={isProcessingFlow}
         >
-          {isFetchingResources && isCreateFlowOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <PlusCircle className="mr-2 h-5 w-5" />}
+          {isProcessingFlow && isCreateFlowOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <PlusCircle className="mr-2 h-5 w-5" />}
            Create New Flow
         </Button>
 
@@ -141,13 +268,13 @@ const DashboardPage: NextPage = () => {
           variant="outline"
           className="md:col-span-1"
           onClick={() => setIsAiGeneratorOpen(true)}
-          disabled={isFetchingResources}
+          disabled={isProcessingFlow}
         >
-          {isFetchingResources && isAiGeneratorOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Lightbulb className="mr-2 h-5 w-5" />}
+          {isProcessingFlow && isAiGeneratorOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Lightbulb className="mr-2 h-5 w-5" />}
            AI Flow Generator
         </Button>
       </div>
-       {isFetchingResources && (
+       {isProcessingFlow && (
         <div className="mb-6 flex items-center justify-center text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           <span>Processing new flow and fetching resources...</span>
@@ -180,7 +307,7 @@ const DashboardPage: NextPage = () => {
                     className="text-destructive hover:text-destructive/90" 
                     onClick={(e) => { 
                       e.stopPropagation(); 
-                      openDeleteConfirmation(flow); 
+                      openDeleteFlowConfirmation(flow); 
                     }}
                     aria-label="Delete flow"
                   >
@@ -199,7 +326,7 @@ const DashboardPage: NextPage = () => {
             </p>
             <Button
               onClick={() => setIsCreateFlowOpen(true)}
-              disabled={isFetchingResources}
+              disabled={isProcessingFlow}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Flow
             </Button>
@@ -211,14 +338,31 @@ const DashboardPage: NextPage = () => {
         <AlertDialog open={!!flowToDelete} onOpenChange={(open) => !open && setFlowToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogTitle>Confirm Flow Deletion</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete the flow "{flowToDelete.name}"? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setFlowToDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+              <AlertDialogAction onClick={handleConfirmDeleteFlow}>Delete Flow</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {taskToDelete && (
+        <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Task Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the task "{taskToDelete.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setTaskToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDeleteTask}>Delete Task</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

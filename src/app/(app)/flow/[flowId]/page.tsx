@@ -13,10 +13,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Flow, Step, StepStatus, Priority, Difficulty, FlowSuggestedResources, SuggestedResourceItem, SuggestedWebsiteItem } from "@/lib/types";
+import type { Flow, Step, StepStatus, Priority, Difficulty, Task } from "@/lib/types";
 import { getStoredFlowById, saveStoredFlow } from "@/lib/flow-storage";
-import { PlusCircle, Edit3, Trash2, CalendarIcon, Loader2, CheckCircle, Palette, Pencil, Sparkles, Wand2, Youtube, FileText, Globe } from "lucide-react";
-import { format } from "date-fns";
+import { saveStoredTask } from "@/lib/task-storage";
+import { PlusCircle, Edit3, Trash2, CalendarIcon, Loader2, CheckCircle, Palette, Pencil, Sparkles, Wand2, Youtube, FileText, Globe, ListChecks, ListPlus, Briefcase } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { summarizeFlowDetails, type SummarizeFlowDetailsInput, type SummarizeFlowDetailsOutput } from '@/ai/flows/summarize-flow-details';
 import Link from "next/link";
 
@@ -41,6 +42,9 @@ export default function FlowDetailPage() {
 
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const [aiGeneratedDetails, setAiGeneratedDetails] = useState<SummarizeFlowDetailsOutput | null>(null);
+
+  const [stepToAddTask, setStepToAddTask] = useState<Step | null>(null);
+  const [taskDueDate, setTaskDueDate] = useState<Date | undefined>(undefined);
   
   const updateFlowInStorage = useCallback((updatedFlow: Flow) => {
     setFlow(updatedFlow); 
@@ -67,7 +71,7 @@ export default function FlowDetailPage() {
             updatedAt: new Date().toISOString(),
           };
           updateFlowInStorage(updatedFlowWithAiDesc);
-          setEditedFlowDescription(result.generatedDescription); // Keep edit dialog in sync
+          setEditedFlowDescription(result.generatedDescription); 
         }
         
         toast({
@@ -192,6 +196,24 @@ export default function FlowDetailPage() {
     const updatedFlow = { ...flow, steps: updatedSteps, updatedAt: now };
     updateFlowInStorage(updatedFlow);
   };
+
+  const handleAddStepAsTask = () => {
+    if (!stepToAddTask || !flow) return;
+    
+    const newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'isCompleted'> = {
+      name: stepToAddTask.name,
+      flowId: flow.id,
+      flowName: flow.name,
+      stepId: stepToAddTask.id,
+      stepName: stepToAddTask.name,
+      dueDate: taskDueDate ? taskDueDate.toISOString() : undefined,
+      notes: stepToAddTask.description || '',
+    };
+    saveStoredTask(newTask);
+    toast({ title: "Task Created", description: `Task "${stepToAddTask.name}" added from flow.`});
+    setStepToAddTask(null);
+    setTaskDueDate(undefined);
+  };
   
   const getStepColor = (status: StepStatus) => {
     switch (status) {
@@ -293,44 +315,48 @@ export default function FlowDetailPage() {
           </div>
         </CardHeader>
       </Card>
+
+      <Card className="mb-8 shadow-md">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold flex items-center">
+             <Briefcase className="mr-2 h-5 w-5 text-primary" />
+             Key Flow Metrics
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <h4 className="font-medium text-muted-foreground">Total Steps</h4>
+            <p className="text-lg font-semibold text-foreground">{flow.steps.length}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-muted-foreground">Est. Total Time</h4>
+            <p className="text-lg font-semibold text-foreground">
+              {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (aiGeneratedDetails?.estimatedTotalTime || "N/A")}
+            </p>
+          </div>
+          <div>
+            <h4 className="font-medium text-muted-foreground">Last Updated</h4>
+            <p className="text-lg font-semibold text-foreground">{formatDistanceToNow(new Date(flow.updatedAt), { addSuffix: true })}</p>
+          </div>
+        </CardContent>
+      </Card>
       
       {shouldShowAiSection && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {shouldShowAiInsights && (
+          {shouldShowAiInsights && aiGeneratedDetails?.insights && aiGeneratedDetails.insights.length > 0 && (
             <Card className="shadow-md bg-muted/20 border-primary/30">
               <CardHeader>
                 <CardTitle className="text-xl font-semibold flex items-center">
                   <Sparkles className="mr-2 h-5 w-5 text-primary" />
-                  AI Insights
+                  Key Observations (AI)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                {aiGeneratedDetails.generatedDescription && (flow.description && flow.description.trim().length < 10) && (
-                   <div>
-                     <h4 className="font-medium text-foreground">AI Generated Summary:</h4>
-                     <p className="text-muted-foreground">{aiGeneratedDetails.generatedDescription}</p>
-                   </div>
-                )}
-                {aiGeneratedDetails.estimatedTotalTime && (
-                  <div>
-                    <h4 className="font-medium text-foreground">Estimated Total Time:</h4>
-                    <p className="text-muted-foreground">{aiGeneratedDetails.estimatedTotalTime}</p>
-                  </div>
-                )}
-                {aiGeneratedDetails.insights && aiGeneratedDetails.insights.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-foreground">Key Observations:</h4>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-2">
-                      {aiGeneratedDetails.insights.map((insight, index) => (
-                        <li key={`insight-${index}`}>{insight}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                 {(!aiGeneratedDetails.estimatedTotalTime && (!aiGeneratedDetails.insights || aiGeneratedDetails.insights.length === 0)) && 
-                  (!aiGeneratedDetails.generatedDescription || (flow.description && flow.description.trim().length >=10)) && (
-                   <p className="text-muted-foreground">AI could not generate additional details for this flow at the moment.</p>
-                 )}
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-2">
+                  {aiGeneratedDetails.insights.map((insight, index) => (
+                    <li key={`insight-${index}`}>{insight}</li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           )}
@@ -470,7 +496,35 @@ export default function FlowDetailPage() {
                     {step.deadline && <span>Deadline: <span className="font-medium">{format(new Date(step.deadline), "PP")}</span></span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <Popover open={stepToAddTask?.id === step.id} onOpenChange={(open) => {
+                      if (!open) {
+                          setStepToAddTask(null);
+                          setTaskDueDate(undefined);
+                      } else {
+                          setStepToAddTask(step);
+                      }
+                  }}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Add to tasks">
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-4 space-y-3">
+                        <p className="text-sm font-medium">Add "{step.name}" to tasks</p>
+                        <div>
+                            <Label htmlFor="task-due-date" className="text-xs">Due Date (Optional)</Label>
+                            <Calendar
+                                mode="single"
+                                selected={taskDueDate}
+                                onSelect={setTaskDueDate}
+                                initialFocus
+                            />
+                        </div>
+                        <Button onClick={handleAddStepAsTask} size="sm" className="w-full">Add Task</Button>
+                    </PopoverContent>
+                  </Popover>
+
                   <Select value={step.status} onValueChange={(value) => handleStatusChange(step.id, value as StepStatus)}>
                     <SelectTrigger className="w-[120px] h-8 text-xs">
                       <SelectValue placeholder="Status" />
@@ -604,4 +658,3 @@ export default function FlowDetailPage() {
     </div>
   );
 }
-
