@@ -262,10 +262,14 @@ export default function FlowDetailPage() {
   }
   
   const orderedSteps = flow.stepsOrder.map(stepId => flow.steps.find(s => s.id === stepId)).filter(Boolean) as Step[];
+  
+  const shouldShowAiInsights = aiGeneratedDetails && !aiSummaryLoading && (flow.steps && flow.steps.length > 0);
   const hasSuggestedResources = flow.suggestedResources && 
     ((flow.suggestedResources.youtubeVideos && flow.suggestedResources.youtubeVideos.length > 0) ||
      (flow.suggestedResources.articles && flow.suggestedResources.articles.length > 0) ||
      (flow.suggestedResources.websites && flow.suggestedResources.websites.length > 0));
+  
+  const shouldShowAiSection = shouldShowAiInsights || hasSuggestedResources;
 
 
   return (
@@ -290,99 +294,103 @@ export default function FlowDetailPage() {
         </CardHeader>
       </Card>
       
-      {aiGeneratedDetails && !aiSummaryLoading && (flow.steps && flow.steps.length > 0) && (
-          <Card className="mb-8 shadow-md bg-muted/20 border-primary/30">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold flex items-center">
-                <Sparkles className="mr-2 h-5 w-5 text-primary" />
-                AI Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {aiGeneratedDetails.generatedDescription && (flow.description && flow.description.trim().length < 10) && (
-                 <div>
-                   <h4 className="font-medium text-foreground">AI Generated Summary:</h4>
-                   <p className="text-muted-foreground">{aiGeneratedDetails.generatedDescription}</p>
-                 </div>
-              )}
-              {aiGeneratedDetails.estimatedTotalTime && (
-                <div>
-                  <h4 className="font-medium text-foreground">Estimated Total Time:</h4>
-                  <p className="text-muted-foreground">{aiGeneratedDetails.estimatedTotalTime}</p>
-                </div>
-              )}
-              {aiGeneratedDetails.insights && aiGeneratedDetails.insights.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-foreground">Key Observations:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-2">
-                    {aiGeneratedDetails.insights.map((insight, index) => (
-                      <li key={`insight-${index}`}>{insight}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-               {(!aiGeneratedDetails.estimatedTotalTime && (!aiGeneratedDetails.insights || aiGeneratedDetails.insights.length === 0)) && 
-                (!aiGeneratedDetails.generatedDescription || (flow.description && flow.description.trim().length >=10)) && (
-                 <p className="text-muted-foreground">AI could not generate additional details for this flow at the moment.</p>
-               )}
-            </CardContent>
-          </Card>
-        )}
+      {shouldShowAiSection && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {shouldShowAiInsights && (
+            <Card className="shadow-md bg-muted/20 border-primary/30">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold flex items-center">
+                  <Sparkles className="mr-2 h-5 w-5 text-primary" />
+                  AI Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {aiGeneratedDetails.generatedDescription && (flow.description && flow.description.trim().length < 10) && (
+                   <div>
+                     <h4 className="font-medium text-foreground">AI Generated Summary:</h4>
+                     <p className="text-muted-foreground">{aiGeneratedDetails.generatedDescription}</p>
+                   </div>
+                )}
+                {aiGeneratedDetails.estimatedTotalTime && (
+                  <div>
+                    <h4 className="font-medium text-foreground">Estimated Total Time:</h4>
+                    <p className="text-muted-foreground">{aiGeneratedDetails.estimatedTotalTime}</p>
+                  </div>
+                )}
+                {aiGeneratedDetails.insights && aiGeneratedDetails.insights.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-foreground">Key Observations:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-2">
+                      {aiGeneratedDetails.insights.map((insight, index) => (
+                        <li key={`insight-${index}`}>{insight}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                 {(!aiGeneratedDetails.estimatedTotalTime && (!aiGeneratedDetails.insights || aiGeneratedDetails.insights.length === 0)) && 
+                  (!aiGeneratedDetails.generatedDescription || (flow.description && flow.description.trim().length >=10)) && (
+                   <p className="text-muted-foreground">AI could not generate additional details for this flow at the moment.</p>
+                 )}
+              </CardContent>
+            </Card>
+          )}
 
-      {hasSuggestedResources && (
-        <Card className="mb-8 shadow-md bg-muted/30">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold flex items-center">
-              <Sparkles className="mr-2 h-5 w-5 text-primary" />
-              Suggested Resources
-            </CardTitle>
-            <CardDescription>AI-powered suggestions to help you with this flow.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {flow.suggestedResources?.youtubeVideos && flow.suggestedResources.youtubeVideos.length > 0 && (
-              <div>
-                <h4 className="font-semibold text-lg mb-2 flex items-center"><Youtube className="mr-2 h-5 w-5 text-red-600"/>YouTube Videos</h4>
-                <ul className="space-y-1 list-disc list-inside pl-2">
-                  {flow.suggestedResources.youtubeVideos.map((video, index) => (
-                    <li key={`yt-${index}`} className="text-sm">
-                      <Link href={video.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        {video.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {flow.suggestedResources?.articles && flow.suggestedResources.articles.length > 0 && (
-              <div>
-                <h4 className="font-semibold text-lg mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-600"/>Articles & Blogs</h4>
-                <ul className="space-y-1 list-disc list-inside pl-2">
-                  {flow.suggestedResources.articles.map((article, index) => (
-                    <li key={`article-${index}`} className="text-sm">
-                      <Link href={article.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        {article.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {flow.suggestedResources?.websites && flow.suggestedResources.websites.length > 0 && (
-              <div>
-                <h4 className="font-semibold text-lg mb-2 flex items-center"><Globe className="mr-2 h-5 w-5 text-green-600"/>Websites & Tools</h4>
-                <ul className="space-y-1 list-disc list-inside pl-2">
-                  {flow.suggestedResources.websites.map((site, index) => (
-                    <li key={`site-${index}`} className="text-sm">
-                      <Link href={site.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                        {site.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {hasSuggestedResources && (
+            <Card className="shadow-md bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold flex items-center">
+                  <Sparkles className="mr-2 h-5 w-5 text-primary" />
+                  Suggested Resources
+                </CardTitle>
+                <CardDescription>AI-powered suggestions to help you with this flow.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {flow.suggestedResources?.youtubeVideos && flow.suggestedResources.youtubeVideos.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-lg mb-2 flex items-center"><Youtube className="mr-2 h-5 w-5 text-red-600"/>YouTube Videos</h4>
+                    <ul className="space-y-1 list-disc list-inside pl-2">
+                      {flow.suggestedResources.youtubeVideos.map((video, index) => (
+                        <li key={`yt-${index}`} className="text-sm">
+                          <Link href={video.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            {video.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {flow.suggestedResources?.articles && flow.suggestedResources.articles.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-lg mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-600"/>Articles & Blogs</h4>
+                    <ul className="space-y-1 list-disc list-inside pl-2">
+                      {flow.suggestedResources.articles.map((article, index) => (
+                        <li key={`article-${index}`} className="text-sm">
+                          <Link href={article.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            {article.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {flow.suggestedResources?.websites && flow.suggestedResources.websites.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-lg mb-2 flex items-center"><Globe className="mr-2 h-5 w-5 text-green-600"/>Websites & Tools</h4>
+                    <ul className="space-y-1 list-disc list-inside pl-2">
+                      {flow.suggestedResources.websites.map((site, index) => (
+                        <li key={`site-${index}`} className="text-sm">
+                          <Link href={site.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            {site.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
 
@@ -596,3 +604,4 @@ export default function FlowDetailPage() {
     </div>
   );
 }
+
