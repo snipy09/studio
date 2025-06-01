@@ -14,6 +14,15 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Optional
 };
 
+// IMPORTANT PERMISSIONS NOTE FOR GCS (Google Cloud Storage):
+// If you specify `storageBucket` in your `firebaseConfig` (e.g., via NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
+// ensure that the necessary IAM permissions (like `storage.objects.get` for reading,
+// `storage.objects.create` for writing) are granted:
+// 1. For users: Check your Firebase Storage Rules in the Firebase Console.
+// 2. For service accounts (if your backend/Genkit interacts with GCS): Check IAM
+//    permissions in the Google Cloud Console for the service account running your code.
+// An "AccessDenied" error for GCS usually means these permissions are missing.
+
 let app: FirebaseApp;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
@@ -54,6 +63,15 @@ try {
   //     console.warn(`Firebase getAnalytics failed: ${(e as Error).message}. Analytics will be unavailable.`);
   //   }
   // }
+
+  if (firebaseConfig.storageBucket) {
+    console.info(
+        `Firebase is configured with storageBucket: ${firebaseConfig.storageBucket}. ` +
+        `Ensure appropriate GCS/Firebase Storage permissions and rules are set if you encounter 'AccessDenied' errors related to storage.`
+    );
+  }
+
+
 } catch (initError) {
   console.error(
     `Critical Firebase app initialization failed: ${(initError as Error).message}. Firebase services will be largely unavailable.`

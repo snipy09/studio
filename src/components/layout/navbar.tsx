@@ -21,6 +21,11 @@ import {
 import { useTheme } from "next-themes";
 import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User, Sparkles, LayoutGrid, SunMoon } from "lucide-react";
 
+// Helper to check if a URL is a GCS gs:// URL
+const isGsUrl = (url?: string | null): boolean => {
+  return !!url && url.startsWith("gs://");
+};
+
 export function Navbar() {
   const { user, logout } = useAuth(); 
   const router = useRouter();
@@ -73,7 +78,10 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
+                    <AvatarImage 
+                      src={!isGsUrl(user.photoURL) ? user.photoURL || "" : ""} 
+                      alt={user.displayName || "User"} 
+                    />
                     <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
                   </Avatar>
                 </Button>
