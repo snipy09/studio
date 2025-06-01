@@ -52,7 +52,12 @@ Based on the workflow name and description, please suggest:
 - 1-2 highly relevant articles or blog posts. For each, provide a 'title' and a 'url'.
 - 1-2 highly relevant websites (these could be tools, official documentation, communities, etc.). For each, provide a 'name' and a 'url'.
 
-CRITICAL INSTRUCTION: All URLs provided MUST be real, working, and publicly accessible web addresses (starting with http:// or https://). Do NOT invent, guess, or fabricate URLs. If you cannot find a genuinely relevant and working URL for a specific resource type, it is MUCH better to return an empty array for that category or omit it (if the schema allows) than to provide a fake or non-functional URL. Prioritize quality and accuracy of links above all.
+**CRITICAL URL VALIDITY AND RELEVANCE:**
+1.  **REAL URLs ONLY:** All URLs provided MUST be real, working, publicly accessible web addresses (starting with http:// or https://).
+2.  **NO FABRICATION:** Do NOT invent, guess, or fabricate URLs. Do not provide URLs that lead to "video unavailable" or "page not found" errors.
+3.  **QUALITY OVER QUANTITY:** If you cannot find a genuinely relevant and working URL for a specific resource type (especially for YouTube videos), it is MUCH better to return an empty array for that category or omit that specific resource (if the schema allows) than to provide a fake, non-functional, or irrelevant URL.
+4.  **DIRECT RELEVANCE:** Ensure the resources are directly related to the workflow's topic.
+5.  Prioritize official documentation, well-known educational channels, or reputable sources.
 `,
 });
 
