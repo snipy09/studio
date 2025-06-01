@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FolderKanban } from "lucide-react";
@@ -10,6 +9,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { DUMMY_AUTH_ENABLED } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const { dummyLogin, user } = useAuth();
@@ -17,18 +17,15 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const handleDummyLoginClick = () => {
-    if (dummyLogin) {
+    if (DUMMY_AUTH_ENABLED && dummyLogin) {
       dummyLogin();
-      toast({ title: "Dummy Login Successful", description: "Welcome, Dummy User!" });
+      toast({ title: "Dummy Login Successful", description: "Welcome, Demo User!" });
       router.push("/dashboard");
     } else {
-      // This case should ideally not happen if the button is only rendered when dummyLogin is available
-      toast({ title: "Error", description: "Dummy login is not available.", variant: "destructive" });
+      toast({ title: "Error", description: "Dummy login is not available or not enabled.", variant: "destructive" });
     }
   };
 
-  // Redirect if user is already logged in (e.g. after dummy login)
-  // AppLayout also handles redirection, but this can make UX smoother on direct navigation to /login
   React.useEffect(() => {
     if (user) {
       router.replace("/dashboard");
@@ -46,20 +43,22 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-headline tracking-tight">Welcome Back!</CardTitle>
-          <CardDescription>Log in to continue to FlowForge.</CardDescription>
+          <CardTitle className="text-3xl font-headline tracking-tight">Welcome to FlowForge!</CardTitle>
+          <CardDescription>Access the demo version instantly.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
-          {dummyLogin && ( // Only render the Dummy Login button if dummyLogin function is provided
+          {DUMMY_AUTH_ENABLED && dummyLogin ? (
             <Button
-              variant="outline"
               type="button"
-              className="w-full mt-4"
+              className="w-full"
               onClick={handleDummyLoginClick}
             >
-              Dummy Login (Dev)
+              Enter Demo
             </Button>
+          ) : (
+            <p className="text-center text-muted-foreground">
+              Login is currently configured for a specific setup.
+            </p>
           )}
         </CardContent>
       </Card>
