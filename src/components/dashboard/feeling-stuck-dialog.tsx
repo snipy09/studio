@@ -231,3 +231,4 @@ export function FeelingStuckDialog({ open, onOpenChange }: FeelingStuckDialogPro
     </Dialog>
   );
 }
+

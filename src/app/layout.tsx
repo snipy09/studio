@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* The <link> tags for Google Fonts are no longer needed here */}
+        {/* next/font handles font optimization, these links are not needed */}
       </head>
       {/* Apply the Inter font class to the body for optimal loading */}
       {/* Your tailwind.config.ts already defines 'Inter' for 'font-body' and 'font-headline',
@@ -38,3 +38,4 @@ export default function RootLayout({
     </html>
   );
 }
+

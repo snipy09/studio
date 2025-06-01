@@ -1,3 +1,4 @@
+
 import type { Template, Step } from "@/lib/types";
 
 const generateSteps = (names: string[]): Step[] => {
@@ -72,3 +73,4 @@ export const prebuiltTemplates: Template[] = [
 prebuiltTemplates.forEach(template => {
   template.stepsOrder = template.steps.map(step => step.id);
 });
+
