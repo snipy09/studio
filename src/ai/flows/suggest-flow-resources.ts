@@ -13,12 +13,12 @@ import {z} from 'genkit';
 
 const ResourceItemSchema = z.object({
   title: z.string().describe("The title of the YouTube video or article."),
-  url: z.string().url().describe("The fully qualified URL to the resource."),
+  url: z.string().describe("The fully qualified URL to the resource. This should be a valid web address starting with http:// or https://."),
 });
 
 const WebsiteItemSchema = z.object({
   name: z.string().describe("The name of the website."),
-  url: z.string().url().describe("The fully qualified URL to the website."),
+  url: z.string().describe("The fully qualified URL to the website. This should be a valid web address starting with http:// or https://."),
 });
 
 const SuggestFlowResourcesInputSchema = z.object({
@@ -48,9 +48,9 @@ Workflow Name: {{{flowName}}}
 Workflow Description: {{{flowDescription}}}
 
 Based on the workflow name and description, please suggest:
-- Up to 3 relevant YouTube videos. For each, provide a 'title' and a 'url'.
-- Up to 3 relevant articles or blog posts. For each, provide a 'title' and a 'url'.
-- Up to 3 relevant websites (these could be tools, official documentation, communities, etc.). For each, provide a 'name' and a 'url'.
+- Up to 3 relevant YouTube videos. For each, provide a 'title' and a 'url'. The URL must be a complete and valid web address.
+- Up to 3 relevant articles or blog posts. For each, provide a 'title' and a 'url'. The URL must be a complete and valid web address.
+- Up to 3 relevant websites (these could be tools, official documentation, communities, etc.). For each, provide a 'name' and a 'url'. The URL must be a complete and valid web address.
 
 Try to find actual, valid, and publicly accessible URLs.
 If you cannot find relevant resources for a category, you can return an empty array for that category or omit it if the schema allows.
@@ -72,3 +72,4 @@ const suggestFlowResourcesFlow = ai.defineFlow(
     return output;
   }
 );
+
