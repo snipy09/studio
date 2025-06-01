@@ -59,7 +59,7 @@ const DashboardPage: NextPage = () => {
     let flowToSave: Flow = {
       ...newFlowData,
       id: flowId,
-      userId: user?.uid || "dummy-user-uid-123",
+      userId: user?.uid || "demo-user-uid-123",
       createdAt: now,
       updatedAt: now,
       steps: newFlowData.steps || [],
@@ -157,7 +157,7 @@ const DashboardPage: NextPage = () => {
   };
   
   const pendingTasks = tasks.filter(task => !task.isCompleted).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const completedTasks = tasks.filter(task => task.isCompleted).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const completedTasks = tasks.filter(task => task.isCompleted).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.createdAt).getTime());
 
   const allStepsForTaskDropdown = flows.reduce((acc, flow) => {
     const flowSteps = flow.steps.map(step => ({

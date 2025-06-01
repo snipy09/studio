@@ -7,13 +7,13 @@ import React, { createContext, useState, useEffect, useContext, useCallback } fr
 import type { User as FirebaseUser, Auth, signOut as signOutType, onAuthStateChanged as onAuthStateChangedType } from "firebase/auth";
 import type { UserProfile } from "@/lib/types";
 
-// --- START DUMMY AUTH CONFIGURATION ---
-export const DUMMY_AUTH_ENABLED = true; 
+// --- START DEMO AUTH CONFIGURATION ---
+export const DEMO_AUTH_ENABLED = true; 
 
-const dummyUser: UserProfile = {
-  uid: "dummy-user-uid-123",
-  email: "dummy@example.com",
-  displayName: "Dummy User",
+const demoUser: UserProfile = {
+  uid: "demo-user-uid-123",
+  email: "demo@example.com",
+  displayName: "Demo User",
   photoURL: "https://placehold.co/100x100.png", // data-ai-hint="user avatar"
   emailVerified: true,
   isAnonymous: false,
@@ -24,19 +24,19 @@ const dummyUser: UserProfile = {
   providerData: [
     {
       providerId: "password",
-      uid: "dummy-user-uid-123",
-      displayName: "Dummy User",
-      email: "dummy@example.com",
+      uid: "demo-user-uid-123",
+      displayName: "Demo User",
+      email: "demo@example.com",
       photoURL: "https://placehold.co/100x100.png", // data-ai-hint="user avatar"
       phoneNumber: null,
     }
   ],
-  refreshToken: "dummy-refresh-token",
+  refreshToken: "demo-refresh-token",
   tenantId: null,
-  delete: async () => { console.log("Dummy user delete called"); },
-  getIdToken: async (_forceRefresh?: boolean) => "dummy-id-token",
+  delete: async () => { console.log("Demo user delete called"); },
+  getIdToken: async (_forceRefresh?: boolean) => "demo-id-token",
   getIdTokenResult: async (_forceRefresh?: boolean) => ({
-    token: "dummy-id-token",
+    token: "demo-id-token",
     expirationTime: new Date(Date.now() + 3600 * 1000).toISOString(),
     authTime: new Date().toISOString(),
     issuedAtTime: new Date().toISOString(),
@@ -44,17 +44,17 @@ const dummyUser: UserProfile = {
     signInSecondFactor: null,
     claims: {},
   } as any), 
-  reload: async () => { console.log("Dummy user reload called"); },
+  reload: async () => { console.log("Demo user reload called"); },
   toJSON: () => ({
-    uid: "dummy-user-uid-123",
-    email: "dummy@example.com",
-    displayName: "Dummy User",
+    uid: "demo-user-uid-123",
+    email: "demo@example.com",
+    displayName: "Demo User",
     photoURL: "https://placehold.co/100x100.png", // data-ai-hint="user avatar"
     emailVerified: true,
     isAnonymous: false,
   }),
 };
-// --- END DUMMY AUTH CONFIGURATION ---
+// --- END DEMO AUTH CONFIGURATION ---
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -62,7 +62,7 @@ interface AuthContextType {
   isManuallySignedOut: boolean;
   setIsManuallySignedOut: (value: boolean) => void;
   logout: () => Promise<void>;
-  dummyLogin?: () => void; 
+  demoLogin?: () => void; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,9 +76,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [fbSignOut, setFbSignOut] = useState<(() => typeof signOutType) | null>(null);
   const [fbOnAuthStateChanged, setFbOnAuthStateChanged] = useState<(() => typeof onAuthStateChangedType) | null>(null);
 
-  const dummyLogin = useCallback(() => {
-    if (DUMMY_AUTH_ENABLED) {
-      setUser(dummyUser);
+  const demoLogin = useCallback(() => {
+    if (DEMO_AUTH_ENABLED) {
+      setUser(demoUser);
       setLoading(false);
       setIsManuallySignedOut(false);
     }
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleAppLogout = useCallback(async () => {
     setUser(null);
     setIsManuallySignedOut(true);
-    if (!DUMMY_AUTH_ENABLED && fbAuthService && fbSignOut) {
+    if (!DEMO_AUTH_ENABLED && fbAuthService && fbSignOut) {
       try {
         const signOutFn = fbSignOut();
         await signOutFn(fbAuthService);
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fbAuthService, fbSignOut]);
 
   useEffect(() => {
-    if (DUMMY_AUTH_ENABLED) {
+    if (DEMO_AUTH_ENABLED) {
       setLoading(false); 
       return;
     }
@@ -123,11 +123,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     loadFirebase();
-  }, [DUMMY_AUTH_ENABLED]); 
+  }, [DEMO_AUTH_ENABLED]); 
 
   useEffect(() => {
-    if (DUMMY_AUTH_ENABLED || !fbAuthService || !fbOnAuthStateChanged) {
-      if (!DUMMY_AUTH_ENABLED && !fbAuthService && !loading) {
+    if (DEMO_AUTH_ENABLED || !fbAuthService || !fbOnAuthStateChanged) {
+      if (!DEMO_AUTH_ENABLED && !fbAuthService && !loading) {
         // This means loadFirebase() completed, but fbAuthService is still null (init failed in config or here)
          console.warn("Firebase auth service not available for onAuthStateChanged listener. Real auth will not function.");
       }
@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [DUMMY_AUTH_ENABLED, fbAuthService, fbOnAuthStateChanged, loading]);
+  }, [DEMO_AUTH_ENABLED, fbAuthService, fbOnAuthStateChanged, loading]);
 
   return (
     <AuthContext.Provider value={{
@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isManuallySignedOut,
       setIsManuallySignedOut,
       logout: handleAppLogout,
-      dummyLogin: DUMMY_AUTH_ENABLED ? dummyLogin : undefined
+      demoLogin: DEMO_AUTH_ENABLED ? demoLogin : undefined
     }}>
       {children}
     </AuthContext.Provider>

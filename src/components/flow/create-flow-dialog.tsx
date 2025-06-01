@@ -47,14 +47,14 @@ export function CreateFlowDialog({ open, onOpenChange, onFlowCreated }: CreateFl
         id: `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         name: values.name,
         description: values.description || "",
-        userId: user?.uid || "dummy-user-uid-123", // Get actual user ID
+        userId: user?.uid || "demo-user-uid-123", 
         steps: [],
         stepsOrder: [],
         createdAt: now,
         updatedAt: now,
       };
 
-      onFlowCreated(newFlow); // Pass the new full flow data to the parent component
+      onFlowCreated(newFlow); 
 
       toast({ title: "Flow Created!", description: `Flow "${values.name}" has been added.` });
 

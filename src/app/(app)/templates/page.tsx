@@ -34,19 +34,16 @@ export default function TemplatesPage() {
         status: "todo" as StepStatus, // Reset status
         createdAt: now,
         updatedAt: now,
-        // Resetting other potentially dynamic fields from template or keeping them?
-        // For now, keep description, priority, difficulty, estimatedTime from template if they exist.
-        // deadline: undefined, // Optionally reset deadline
       }));
 
       const newFlow: Flow = {
         id: newFlowId,
         name: `Copy of: ${selectedTemplate.name}`,
         description: selectedTemplate.description,
-        userId: user?.uid || "dummy-user-uid-123", // Use dummy ID if no user
+        userId: user?.uid || "demo-user-uid-123", 
         steps: newSteps,
         stepsOrder: newSteps.map(step => step.id),
-        isTemplate: false, // This is now a user's flow
+        isTemplate: false, 
         createdAt: now,
         updatedAt: now,
       };

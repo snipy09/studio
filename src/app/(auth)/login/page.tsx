@@ -9,20 +9,20 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { DUMMY_AUTH_ENABLED } from "@/contexts/auth-context";
+import { DEMO_AUTH_ENABLED } from "@/contexts/auth-context";
 
 export default function LoginPage() {
-  const { dummyLogin, user } = useAuth();
+  const { demoLogin, user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleDummyLoginClick = () => {
-    if (DUMMY_AUTH_ENABLED && dummyLogin) {
-      dummyLogin();
-      toast({ title: "Dummy Login Successful", description: "Welcome, Demo User!" });
+  const handleDemoLoginClick = () => {
+    if (DEMO_AUTH_ENABLED && demoLogin) {
+      demoLogin();
+      toast({ title: "Demo Login Successful", description: "Welcome, Demo User!" });
       router.push("/dashboard");
     } else {
-      toast({ title: "Error", description: "Dummy login is not available or not enabled.", variant: "destructive" });
+      toast({ title: "Error", description: "Demo login is not available or not enabled.", variant: "destructive" });
     }
   };
 
@@ -47,11 +47,11 @@ export default function LoginPage() {
           <CardDescription>Access the demo version instantly.</CardDescription>
         </CardHeader>
         <CardContent>
-          {DUMMY_AUTH_ENABLED && dummyLogin ? (
+          {DEMO_AUTH_ENABLED && demoLogin ? (
             <Button
               type="button"
               className="w-full"
-              onClick={handleDummyLoginClick}
+              onClick={handleDemoLoginClick}
             >
               Enter Demo
             </Button>

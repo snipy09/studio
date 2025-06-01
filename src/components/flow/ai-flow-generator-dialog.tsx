@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Lightbulb, Loader2 } from "lucide-react";
 import { generateFlowFromDescription, type GenerateFlowFromDescriptionInput } from '@/ai/flows/generate-flow-from-description';
-import type { Flow, Step } from "@/lib/types"; // Import Flow and Step types
+import type { Flow, Step } from "@/lib/types"; 
 import { useAuth } from '@/contexts/auth-context';
 
 const formSchema = z.object({
@@ -27,7 +27,7 @@ const formSchema = z.object({
 type AiFlowGeneratorDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onFlowCreated: (newFlow: Flow) => void; // Expect a full Flow object
+  onFlowCreated: (newFlow: Flow) => void; 
 };
 
 export function AiFlowGeneratorDialog({ open, onOpenChange, onFlowCreated }: AiFlowGeneratorDialogProps) {
@@ -71,7 +71,7 @@ export function AiFlowGeneratorDialog({ open, onOpenChange, onFlowCreated }: AiF
           id: `flow-ai-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           name: newFlowName,
           description: values.description,
-          userId: user?.uid || "dummy-user-uid-123",
+          userId: user?.uid || "demo-user-uid-123",
           steps: newSteps,
           stepsOrder: newSteps.map(step => step.id),
           createdAt: now,
