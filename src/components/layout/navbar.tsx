@@ -13,14 +13,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggleButton } from "./theme-toggle-button";
-import { PomodoroTimer } from "@/components/tools/pomodoro-timer";
-import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User, Sparkles, LayoutGrid } from "lucide-react";
+import { useTheme } from "next-themes";
+import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User, Sparkles, LayoutGrid, SunMoon } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth(); 
   const router = useRouter();
+  const { setTheme } = useTheme();
 
   const handleLogoutClick = async () => {
     await logout(); 
@@ -58,8 +62,7 @@ export function Navbar() {
           </Link>
         </nav>
         <div className="ml-auto flex items-center space-x-2"> 
-          <PomodoroTimer /> 
-          <ThemeToggleButton />
+          {/* PomodoroTimer and ThemeToggleButton removed from here */}
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -94,6 +97,26 @@ export function Navbar() {
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem> */}
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <SunMoon className="mr-2 h-4 w-4" />
+                    <span>Theme</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => setTheme('light')}>
+                        Light
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme('dark')}>
+                        Dark
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme('system')}>
+                        System
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogoutClick}>
                   <LogOut className="mr-2 h-4 w-4" />

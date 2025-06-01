@@ -29,6 +29,7 @@ import { getAllStoredTasks, saveStoredTask, deleteStoredTaskById, toggleTaskComp
 import { formatDistanceToNow, format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { suggestFlowResources, type SuggestFlowResourcesInput } from "@/ai/flows/suggest-flow-resources";
+import { PomodoroTimer } from "@/components/tools/pomodoro-timer";
 
 
 const DashboardPage: NextPage = () => {
@@ -183,7 +184,10 @@ const DashboardPage: NextPage = () => {
       {/* Task List Card */}
       <Card className="mb-12 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center font-headline"><ListTodo className="mr-3 h-6 w-6 text-primary" /> My Tasks</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center font-headline"><ListTodo className="mr-3 h-6 w-6 text-primary" /> My Tasks</CardTitle>
+            <PomodoroTimer />
+          </div>
           <CardDescription>Quickly add tasks from your flow steps or manage existing ones.</CardDescription>
         </CardHeader>
         <CardContent>
