@@ -89,17 +89,16 @@ Based on this input, please provide a comprehensive discovery plan adhering stri
         *   'potentialChallenges' (optional but highly recommended): An array of 1-2 potential challenges (e.g., "Maintaining motivation," "Finding time") with brief, constructive tips (e.g., "Break tasks into smaller chunks," "Schedule dedicated learning blocks").
         *   'expectedOutcome': A concise sentence describing the positive outcome (e.g., "You'll have a foundational understanding of Python and a completed small data project.").
         *   'suggestedResources' (optional but highly recommended):
-            *   Provide 1-2 relevant YouTube video titles and valid URLs.
-            *   Provide 1-2 relevant article/blog post titles and valid URLs.
-            *   Provide 1-2 relevant website/tool names and valid URLs (e.g., a link to an online course platform, a specific library documentation).
-            *   Ensure all URLs are real, publicly accessible, and start with http:// or https://. Prioritize quality and direct relevance to the project.
+            *   Provide 1-2 relevant YouTube video titles and URLs.
+            *   Provide 1-2 relevant article/blog post titles and URLs.
+            *   Provide 1-2 relevant website/tool names and URLs (e.g., a link to an online course platform, a specific library documentation).
+            *   CRITICAL URL VALIDITY: Ensure all URLs are real, publicly accessible, working web addresses starting with http:// or https://. Do NOT invent or guess URLs. If you cannot find a genuinely relevant and working URL, it is better to omit that specific resource or return an empty list for that resource type than to provide a fake URL. Prioritize quality and direct relevance to the project.
 
 General Guidelines:
 *   Be positive, encouraging, and constructive.
 *   Ensure all generated content is practical and actionable.
 *   If the user's input is very vague, try to provide broader suggestions or gently guide them towards clarifying their thoughts within the project rationale.
 *   Strictly adhere to the output schema. Ensure all required fields are present and arrays have the specified min/max number of items where applicable.
-*   Double-check that all URLs provided for resources are complete and valid.
 `,
 });
 
@@ -126,3 +125,4 @@ const generateDetailedDiscoveryPlanFlow = ai.defineFlow(
     return output;
   }
 );
+

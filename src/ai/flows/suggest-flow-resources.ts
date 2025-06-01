@@ -28,9 +28,9 @@ const SuggestFlowResourcesInputSchema = z.object({
 export type SuggestFlowResourcesInput = z.infer<typeof SuggestFlowResourcesInputSchema>;
 
 const SuggestFlowResourcesOutputSchema = z.object({
-  youtubeVideos: z.array(ResourceItemSchema).optional().describe("An array of 2-3 suggested YouTube videos relevant to the workflow."),
-  articles: z.array(ResourceItemSchema).optional().describe("An array of 2-3 suggested articles or blog posts relevant to the workflow."),
-  websites: z.array(WebsiteItemSchema).optional().describe("An array of 2-3 suggested websites (tools, communities, official documentation) relevant to the workflow."),
+  youtubeVideos: z.array(ResourceItemSchema).optional().describe("An array of 1-2 highly relevant YouTube videos related to the workflow."),
+  articles: z.array(ResourceItemSchema).optional().describe("An array of 1-2 highly relevant articles or blog posts related to the workflow."),
+  websites: z.array(WebsiteItemSchema).optional().describe("An array of 1-2 highly relevant websites (tools, communities, official documentation) related to the workflow."),
 });
 export type SuggestFlowResourcesOutput = z.infer<typeof SuggestFlowResourcesOutputSchema>;
 
@@ -48,13 +48,11 @@ Workflow Name: {{{flowName}}}
 Workflow Description: {{{flowDescription}}}
 
 Based on the workflow name and description, please suggest:
-- Up to 3 relevant YouTube videos. For each, provide a 'title' and a 'url'. The URL must be a complete and valid web address.
-- Up to 3 relevant articles or blog posts. For each, provide a 'title' and a 'url'. The URL must be a complete and valid web address.
-- Up to 3 relevant websites (these could be tools, official documentation, communities, etc.). For each, provide a 'name' and a 'url'. The URL must be a complete and valid web address.
+- 1-2 highly relevant YouTube videos. For each, provide a 'title' and a 'url'.
+- 1-2 highly relevant articles or blog posts. For each, provide a 'title' and a 'url'.
+- 1-2 highly relevant websites (these could be tools, official documentation, communities, etc.). For each, provide a 'name' and a 'url'.
 
-Try to find actual, valid, and publicly accessible URLs.
-If you cannot find relevant resources for a category, you can return an empty array for that category or omit it if the schema allows.
-Focus on quality and relevance.
+CRITICAL INSTRUCTION: All URLs provided MUST be real, working, and publicly accessible web addresses (starting with http:// or https://). Do NOT invent, guess, or fabricate URLs. If you cannot find a genuinely relevant and working URL for a specific resource type, it is MUCH better to return an empty array for that category or omit it (if the schema allows) than to provide a fake or non-functional URL. Prioritize quality and accuracy of links above all.
 `,
 });
 
