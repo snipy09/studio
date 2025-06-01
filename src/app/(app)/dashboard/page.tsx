@@ -6,9 +6,9 @@ import type { NextPage } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PlusCircle, Lightbulb, FolderKanban, Trash2, Loader2, ListTodo, CalendarDays, XCircle } from "lucide-react";
+import { PlusCircle, Lightbulb, FolderKanban, Trash2, Loader2, ListTodo, CalendarDays, XCircle, HelpCircle, Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,8 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { CreateFlowDialog } from "@/components/flow/create-flow-dialog";
 import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog";
-import type { Flow, Task } from "@/lib/types";
+import { FeelingStuckDialog } from "@/components/dashboard/feeling-stuck-dialog";
+import type { Flow, Task, Step } from "@/lib/types";
 import { getAllStoredFlows, saveStoredFlow, deleteStoredFlowById } from "@/lib/flow-storage";
 import { getAllStoredTasks, saveStoredTask, deleteStoredTaskById, toggleTaskCompletion } from "@/lib/task-storage";
 import { formatDistanceToNow, format } from 'date-fns';
@@ -35,9 +36,11 @@ const DashboardPage: NextPage = () => {
   const { toast } = useToast();
   const [flows, setFlows] = useState<Flow[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTaskName, setNewTaskName] = useState("");
+  
   const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
   const [isAiGeneratorOpen, setIsAiGeneratorOpen] = useState(false);
+  const [isFeelingStuckOpen, setIsFeelingStuckOpen] = useState(false);
+
   const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isProcessingFlow, setIsProcessingFlow] = useState(false);
@@ -66,7 +69,7 @@ const DashboardPage: NextPage = () => {
     setFlows(currentFlows);
     toast({ title: "Flow Created!", description: `"${flowToSave.name}" added.` });
 
-    if (!newFlowData.suggestedResources) { // Only fetch if not already provided (e.g., by AI generator)
+    if (!newFlowData.suggestedResources) { 
       toast({ title: "Fetching Resources...", description: `AI is finding resources for "${flowToSave.name}".`});
       try {
         const resourceInput: SuggestFlowResourcesInput = {
@@ -111,16 +114,28 @@ const DashboardPage: NextPage = () => {
     }
   };
 
-  const handleAddTask = () => {
-    if (!newTaskName.trim()) {
-      toast({ title: "Task name empty", description: "Please enter a name for your task.", variant: "destructive" });
+  const handleAddStepAsTask = (stepId: string) => {
+    const allStepsFromAllFlows = flows.flatMap(f => f.steps.map(s => ({ ...s, flowName: f.name, flowId: f.id })));
+    const selectedStep = allStepsFromAllFlows.find(s => s.id === stepId);
+
+    if (!selectedStep) {
+      toast({ title: "Error", description: "Selected step not found.", variant: "destructive" });
       return;
     }
-    const updatedTasks = saveStoredTask({ name: newTaskName.trim(), isCompleted: false });
+
+    const newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'isCompleted'> = {
+      name: selectedStep.name,
+      flowId: selectedStep.flowId,
+      flowName: selectedStep.flowName,
+      stepId: selectedStep.id,
+      stepName: selectedStep.name,
+      notes: selectedStep.description || '',
+    };
+    const updatedTasks = saveStoredTask(newTask);
     setTasks(updatedTasks);
-    setNewTaskName("");
-    toast({ title: "Task Added", description: `"${newTaskName.trim()}" added to your tasks.` });
+    toast({ title: "Task Added", description: `Task "${selectedStep.name}" added from flow "${selectedStep.flowName}".` });
   };
+
 
   const handleToggleTask = (taskId: string) => {
     const updatedTasks = toggleTaskCompletion(taskId);
@@ -143,6 +158,16 @@ const DashboardPage: NextPage = () => {
   const pendingTasks = tasks.filter(task => !task.isCompleted).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const completedTasks = tasks.filter(task => task.isCompleted).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
+  const allStepsForTaskDropdown = flows.reduce((acc, flow) => {
+    const flowSteps = flow.steps.map(step => ({
+      id: step.id,
+      name: step.name,
+      flowName: flow.name,
+      flowId: flow.id,
+    }));
+    return [...acc, ...flowSteps];
+  }, [] as Array<{id: string, name: string, flowName: string, flowId: string}>);
+
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
@@ -159,21 +184,29 @@ const DashboardPage: NextPage = () => {
       <Card className="mb-12 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center font-headline"><ListTodo className="mr-3 h-6 w-6 text-primary" /> My Tasks</CardTitle>
-          <CardDescription>Manage your to-dos and stay on track.</CardDescription>
+          <CardDescription>Quickly add tasks from your flow steps or manage existing ones.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2 mb-4">
-            <Input
-              type="text"
-              placeholder="Add a new task..."
-              value={newTaskName}
-              onChange={(e) => setNewTaskName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAddTask(); }}
-              className="flex-grow"
-            />
-            <Button onClick={handleAddTask} disabled={!newTaskName.trim()}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Task
-            </Button>
+          <div className="mb-4">
+             <Select onValueChange={(stepId) => { if(stepId) handleAddStepAsTask(stepId); }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Add a task from your flow steps..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Select a step to add as a task</SelectLabel>
+                  {allStepsForTaskDropdown.length > 0 ? (
+                    allStepsForTaskDropdown.map(step => (
+                      <SelectItem key={step.id} value={step.id}>
+                        {step.name} (From: {step.flowName})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-steps" disabled>No steps available in your flows</SelectItem>
+                  )}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           {pendingTasks.length > 0 && (
@@ -236,13 +269,13 @@ const DashboardPage: NextPage = () => {
           )}
 
           {tasks.length === 0 && (
-            <p className="text-center text-muted-foreground py-4">No tasks yet. Add one above!</p>
+            <p className="text-center text-muted-foreground py-4">No tasks yet. Add one using the dropdown above!</p>
           )}
         </CardContent>
       </Card>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <CreateFlowDialog
           open={isCreateFlowOpen}
           onOpenChange={setIsCreateFlowOpen}
@@ -270,8 +303,22 @@ const DashboardPage: NextPage = () => {
           onClick={() => setIsAiGeneratorOpen(true)}
           disabled={isProcessingFlow}
         >
-          {isProcessingFlow && isAiGeneratorOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Lightbulb className="mr-2 h-5 w-5" />}
+          {isProcessingFlow && isAiGeneratorOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
            AI Flow Generator
+        </Button>
+        
+        <FeelingStuckDialog
+          open={isFeelingStuckOpen}
+          onOpenChange={setIsFeelingStuckOpen}
+        />
+        <Button
+            size="lg"
+            variant="secondary"
+            className="md:col-span-1"
+            onClick={() => setIsFeelingStuckOpen(true)}
+        >
+            <HelpCircle className="mr-2 h-5 w-5" />
+            Feeling Stuck?
         </Button>
       </div>
        {isProcessingFlow && (

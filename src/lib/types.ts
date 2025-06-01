@@ -104,6 +104,18 @@ export interface Task {
   notes?: string;
 }
 
+// Types for GetUnstuckFlow
+export interface GetUnstuckInput {
+  problemDescription: string;
+}
+
+export interface GetUnstuckOutput {
+  clarifiedProblem?: string;
+  suggestedRoadmap: string[];
+  keySolutionInsights: string[];
+  suggestedResources?: FlowSuggestedResources;
+}
+
 
 // (The old GenerateGoalsInput and GenerateGoalsOutput can be removed or kept if used elsewhere,
 // but the new flow will use GenerateDetailedDiscoveryPlanInput/Output)
