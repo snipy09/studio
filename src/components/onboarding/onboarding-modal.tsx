@@ -37,21 +37,21 @@ const steps: OnboardingStep[] = [
     icon: FolderKanban,
     description: "Design custom workflows tailored to your needs. Add steps, set deadlines, and track progress. You can create flows manually or use our AI Flow Generator for a quick start!",
     image: "https://placehold.co/400x200.png",
-    imageHint: "flow creation interface"
+    imageHint: "flow creation"
   },
   {
     title: "Discover Your Next Big Thing",
     icon: Lightbulb,
     description: "Feeling unsure about your next project or goal? Use the 'Discover' feature. Answer a few reflective questions, and our AI will provide personalized insights, project ideas, and relevant resources.",
     image: "https://placehold.co/400x200.png",
-    imageHint: "discover feature preview"
+    imageHint: "discover feature"
   },
   {
     title: "Feeling Stuck? Get AI Help",
     icon: HelpCircle,
     description: "Everyone hits a roadblock sometimes. If you're feeling stuck, describe your challenge, and our AI will offer a practical roadmap, solution insights, and helpful resources to get you moving again.",
     image: "https://placehold.co/400x200.png",
-    imageHint: "feeling stuck help"
+    imageHint: "ai assistance"
   },
   {
     title: "Flow Templates",
