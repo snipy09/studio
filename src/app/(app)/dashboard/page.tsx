@@ -166,27 +166,6 @@ const DashboardPage: NextPage = () => {
           </AlertDialogContent>
         </AlertDialog>
       )}
-
-       <div className="mt-16 p-8 bg-card rounded-lg shadow-lg">
-        <h3 className="text-2xl font-semibold mb-4 text-center font-headline">Unlock Your Potential with FlowForge</h3>
-        <div className="grid md:grid-cols-3 gap-8 text-center">
-          <div>
-            <Image src="https://placehold.co/600x400.png" alt="Organize tasks" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="organization productivity" />
-            <h4 className="font-semibold text-lg mb-1 font-headline">Organize Visually</h4>
-            <p className="text-sm text-muted-foreground">Break down complex projects into manageable steps on a visual flowboard.</p>
-          </div>
-          <div>
-            <Image src="https://placehold.co/600x400.png" alt="AI powered planning" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="artificial intelligence planning"/>
-            <h4 className="font-semibold text-lg mb-1 font-headline">AI-Powered Planning</h4>
-            <p className="text-sm text-muted-foreground">Let our AI generate custom workflows tailored to your goals and resources.</p>
-          </div>
-          <div>
-            <Image src="https://placehold.co/600x400.png" alt="Achieve goals" width={600} height={400} className="rounded-md mb-2 mx-auto" data-ai-hint="goals achievement"/>
-            <h4 className="font-semibold text-lg mb-1 font-headline">Achieve More</h4>
-            <p className="text-sm text-muted-foreground">Stay on track with deadlines, progress tracking, and smart suggestions.</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
