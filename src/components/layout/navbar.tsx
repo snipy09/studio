@@ -15,8 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggleButton } from "./theme-toggle-button";
-import { PomodoroTimer } from "@/components/tools/pomodoro-timer"; // Import PomodoroTimer
-import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User, Sparkles } from "lucide-react";
+import { PomodoroTimer } from "@/components/tools/pomodoro-timer";
+import { LayoutDashboard, LogOut, Settings, FolderKanban, Lightbulb, User, Sparkles, LayoutGrid } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth(); 
@@ -51,20 +51,14 @@ export function Navbar() {
             Dashboard
           </Link>
           <Link
-            href="/templates"
-            className="transition-colors hover:text-foreground/80 text-foreground/60"
-          >
-            Templates
-          </Link>
-          <Link
             href="/discover"
             className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center"
           >
             <Sparkles className="mr-1 h-4 w-4" /> Discover
           </Link>
         </nav>
-        <div className="ml-auto flex items-center space-x-2"> {/* Reduced space for more items */}
-          <PomodoroTimer /> {/* Add Pomodoro Timer here */}
+        <div className="ml-auto flex items-center space-x-2"> 
+          <PomodoroTimer /> 
           <ThemeToggleButton />
           {user && (
             <DropdownMenu>
@@ -91,6 +85,10 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   <span>Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/templates')}>
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  <span>Templates</span>
                 </DropdownMenuItem>
                 {/* <DropdownMenuItem disabled>
                   <Settings className="mr-2 h-4 w-4" />

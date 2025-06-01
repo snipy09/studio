@@ -69,7 +69,7 @@ const DashboardPage: NextPage = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         <CreateFlowDialog
           open={isCreateFlowOpen}
           onOpenChange={setIsCreateFlowOpen}
@@ -96,12 +96,6 @@ const DashboardPage: NextPage = () => {
         >
           <Lightbulb className="mr-2 h-5 w-5" /> AI Flow Generator
         </Button>
-
-        <Link href="/templates" passHref legacyBehavior>
-          <Button size="lg" variant="outline" className="md:col-span-1 w-full">
-            <LayoutGrid className="mr-2 h-5 w-5" /> Browse Templates
-          </Button>
-        </Link>
       </div>
 
       <div>
@@ -129,7 +123,7 @@ const DashboardPage: NextPage = () => {
                     size="icon" 
                     className="text-destructive hover:text-destructive/90" 
                     onClick={(e) => { 
-                      e.stopPropagation(); // Prevent card click or other parent events
+                      e.stopPropagation(); 
                       openDeleteConfirmation(flow); 
                     }}
                     aria-label="Delete flow"
