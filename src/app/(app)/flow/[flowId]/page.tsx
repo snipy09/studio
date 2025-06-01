@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context";
 import type { Flow, Step, StepStatus, Priority, Difficulty } from "@/lib/types";
 import { getStoredFlowById, saveStoredFlow } from "@/lib/flow-storage";
-import { PlusCircle, Edit3, Trash2, CalendarIcon, Loader2, CheckCircle, Palette, Pencil } from "lucide-react";
+import { PlusCircle, Edit3, Trash2, CalendarIcon, Loader2, CheckCircle, Palette, Pencil, Sparkles, Wand2 } from "lucide-react";
 import { format } from "date-fns";
+import { summarizeFlowDetails, type SummarizeFlowDetailsInput, type SummarizeFlowDetailsOutput } from '@/ai/flows/summarize-flow-details';
 
 export default function FlowDetailPage() {
   const params = useParams();
@@ -38,6 +38,56 @@ export default function FlowDetailPage() {
   const [editedFlowName, setEditedFlowName] = useState("");
   const [editedFlowDescription, setEditedFlowDescription] = useState("");
 
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiGeneratedDetails, setAiGeneratedDetails] = useState<SummarizeFlowDetailsOutput | null>(null);
+  
+  const updateFlowInStorage = useCallback((updatedFlow: Flow) => {
+    setFlow(updatedFlow); 
+    saveStoredFlow(updatedFlow); 
+  }, []);
+
+  const triggerAiSummary = useCallback(async (currentFlow: Flow) => {
+    if (!currentFlow || (!currentFlow.description || currentFlow.description.trim().length < 10) && currentFlow.steps && currentFlow.steps.length > 0) {
+      setAiSummaryLoading(true);
+      setAiGeneratedDetails(null); 
+      try {
+        const input: SummarizeFlowDetailsInput = {
+          flowName: currentFlow.name,
+          stepNames: currentFlow.steps.map(s => s.name),
+        };
+        const result = await summarizeFlowDetails(input);
+        
+        setAiGeneratedDetails(result);
+
+        if (result.generatedDescription && (!currentFlow.description || currentFlow.description.trim().length < 10)) {
+          const updatedFlowWithAiDesc: Flow = {
+            ...currentFlow,
+            description: result.generatedDescription,
+            updatedAt: new Date().toISOString(),
+          };
+          updateFlowInStorage(updatedFlowWithAiDesc);
+          setEditedFlowDescription(result.generatedDescription);
+        }
+        
+        toast({
+          title: "AI Insights Generated",
+          description: "Flow summary and details have been enhanced by AI.",
+        });
+
+      } catch (error: any) {
+        console.error("AI Summary Generation error:", error);
+        toast({
+          title: "AI Summary Error",
+          description: error.message || "Could not generate AI summary.",
+          variant: "destructive",
+        });
+      } finally {
+        setAiSummaryLoading(false);
+      }
+    }
+  }, [updateFlowInStorage, toast]);
+
+
   useEffect(() => {
     setIsLoading(true);
     if (flowId) {
@@ -46,18 +96,30 @@ export default function FlowDetailPage() {
         setFlow(fetchedFlow);
         setEditedFlowName(fetchedFlow.name);
         setEditedFlowDescription(fetchedFlow.description || "");
+        // Trigger AI summary if description is missing/short and flow has steps
+        if ((!fetchedFlow.description || fetchedFlow.description.trim().length < 10) && fetchedFlow.steps && fetchedFlow.steps.length > 0) {
+            triggerAiSummary(fetchedFlow);
+        } else if (fetchedFlow.description && fetchedFlow.description.trim().length >=10 && fetchedFlow.steps && fetchedFlow.steps.length > 0) {
+            // If description exists, still try to get AI insights for time/other details, but don't overwrite desc
+            // To avoid re-fetching insights every time if they were already fetched and description wasn't changed by AI:
+            // We could store aiGeneratedDetails in localStorage or check if a previous AI run already populated description
+            // For now, let's keep it simple: if a good description exists, we won't fetch AI details to prevent overwriting.
+            // Or, we can fetch but not update the description.
+            // Let's fetch AI details regardless if steps exist, but only update description if it's missing.
+            // The current triggerAiSummary logic already handles not overwriting a good description by AI.
+            // To show previously AI generated details, we would need to persist them.
+            // For this iteration, if a description exists, we won't run the AI summary to avoid confusion.
+            // The user's request was "if description is not added make ai make one".
+        }
+
       } else {
         toast({ title: "Error", description: "Flow not found.", variant: "destructive" });
         router.push("/dashboard");
       }
     }
     setIsLoading(false);
-  }, [flowId, router, toast]);
+  }, [flowId, router, toast, triggerAiSummary]);
 
-  const updateFlowInStorage = (updatedFlow: Flow) => {
-    setFlow(updatedFlow); // Update local state first
-    saveStoredFlow(updatedFlow); // Then save to localStorage
-  };
 
   const handleOpenEditFlowDialog = () => {
     if (flow) {
@@ -201,11 +263,13 @@ export default function FlowDetailPage() {
   };
 
 
-  if (isLoading) {
+  if (isLoading && !flow) { // Keep showing loader until flow is at least attempted to be fetched
     return <div className="container mx-auto py-8 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" /> <p>Loading flow...</p></div>;
   }
 
   if (!flow) {
+    // This state might be hit if flowId is invalid and router.push to dashboard hasn't completed yet
+    // or if initial loading state is true but flow is null (before useEffect sets it)
     return <div className="container mx-auto py-8 text-center">Flow not found or could not be loaded.</div>;
   }
   
@@ -219,6 +283,12 @@ export default function FlowDetailPage() {
             <div>
               <CardTitle className="text-3xl font-bold tracking-tight font-headline">{flow.name}</CardTitle>
               {flow.description && <CardDescription className="mt-1">{flow.description}</CardDescription>}
+              {(!flow.description || flow.description.trim().length < 10) && aiSummaryLoading && (
+                <div className="mt-2 flex items-center text-sm text-muted-foreground">
+                    <Wand2 className="mr-2 h-4 w-4 animate-pulse text-primary" />
+                    AI is crafting a summary for this flow...
+                </div>
+              )}
             </div>
             <Button variant="outline" size="icon" onClick={handleOpenEditFlowDialog} aria-label="Edit flow details">
               <Pencil className="h-5 w-5" />
@@ -226,6 +296,39 @@ export default function FlowDetailPage() {
           </div>
         </CardHeader>
       </Card>
+      
+      {aiGeneratedDetails && !aiSummaryLoading && (flow.steps && flow.steps.length > 0) && (
+          <Card className="mb-8 shadow-md bg-muted/20 border-primary/30">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold flex items-center">
+                <Sparkles className="mr-2 h-5 w-5 text-primary" />
+                AI Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {aiGeneratedDetails.estimatedTotalTime && (
+                <div>
+                  <h4 className="font-medium text-foreground">Estimated Total Time:</h4>
+                  <p className="text-muted-foreground">{aiGeneratedDetails.estimatedTotalTime}</p>
+                </div>
+              )}
+              {aiGeneratedDetails.insights && aiGeneratedDetails.insights.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-foreground">Key Observations:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-2">
+                    {aiGeneratedDetails.insights.map((insight, index) => (
+                      <li key={`insight-${index}`}>{insight}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+               {(!aiGeneratedDetails.estimatedTotalTime && (!aiGeneratedDetails.insights || aiGeneratedDetails.insights.length === 0)) && (
+                 <p className="text-muted-foreground">AI could not generate additional details for this flow at the moment.</p>
+               )}
+            </CardContent>
+          </Card>
+        )}
+
 
       {isEditFlowDetailsOpen && (
         <Dialog open={isEditFlowDetailsOpen} onOpenChange={setIsEditFlowDetailsOpen}>
@@ -437,4 +540,3 @@ export default function FlowDetailPage() {
     </div>
   );
 }
-
