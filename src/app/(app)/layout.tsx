@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { Navbar } from "@/components/layout/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { OnboardingModal } from "@/components/onboarding/onboarding-modal"; // Import the modal
+import { OnboardingModal, ONBOARDING_STORAGE_KEY } from "@/components/onboarding/onboarding-modal"; // Import the modal and key
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading, isManuallySignedOut } = useAuth();
@@ -20,12 +20,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     }
     if (!loading && user) {
       // Check if onboarding has been completed
-      const onboardingCompleted = localStorage.getItem("flowforge_onboarding_completed_v1");
+      const onboardingCompleted = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (!onboardingCompleted) {
         setShowOnboarding(true);
       }
     }
   }, [user, loading, router, isManuallySignedOut]);
+
+  const handleOnboardingFinish = () => {
+    setShowOnboarding(false);
+    // Note: localStorage.setItem is handled within OnboardingModal's triggerFinish
+  };
 
   if (loading) {
     return (
@@ -65,7 +70,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">
         {children}
       </main>
-      {showOnboarding && <OnboardingModal />}
+      {showOnboarding && <OnboardingModal open={showOnboarding} onFinish={handleOnboardingFinish} />}
     </div>
   );
 }

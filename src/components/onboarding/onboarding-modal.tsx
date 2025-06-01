@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, CheckCircle, LayoutDashboard, Sparkles, FolderKanban, Lightbulb, HelpCircle, LayoutGrid } from "lucide-react";
 import Image from 'next/image';
 
-const ONBOARDING_STORAGE_KEY = "flowforge_onboarding_completed_v1";
+export const ONBOARDING_STORAGE_KEY = "flowforge_onboarding_completed_v1";
 
 interface OnboardingStep {
   title: string;
@@ -62,22 +62,19 @@ const steps: OnboardingStep[] = [
   },
 ];
 
-export function OnboardingModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
+interface OnboardingModalProps {
+  open: boolean;
+  onFinish: () => void;
+}
 
-  useEffect(() => {
-    const onboardingCompleted = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!onboardingCompleted) {
-      setIsOpen(true);
-    }
-  }, []);
+export function OnboardingModal({ open, onFinish }: OnboardingModalProps) {
+  const [currentStep, setCurrentStep] = useState(0);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      handleFinish();
+      triggerFinish();
     }
   };
 
@@ -87,20 +84,20 @@ export function OnboardingModal() {
     }
   };
 
-  const handleFinish = () => {
+  const triggerFinish = () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
-    setIsOpen(false);
+    onFinish(); // Notify parent component
   };
 
-  if (!isOpen) {
+  if (!open) {
     return null;
   }
 
   const ActiveIcon = steps[currentStep].icon;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-        if(!open) handleFinish(); // If user closes dialog via X or overlay click
+    <Dialog open={open} onOpenChange={(newOpenState) => {
+        if(!newOpenState) triggerFinish(); // If user closes dialog via X or overlay click
     }}>
       <DialogContent className="sm:max-w-lg p-0" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader className="p-6 pb-4">
@@ -151,7 +148,7 @@ export function OnboardingModal() {
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleFinish} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={triggerFinish} className="bg-green-600 hover:bg-green-700">
                 <CheckCircle className="mr-2 h-4 w-4" /> Finish Tour
               </Button>
             )}
