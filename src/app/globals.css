@@ -1,37 +1,38 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 338.6 52.9% 94.1%; /* Light Pink */
-    --foreground: 338 10% 26%; /* Dark Purple/Brown */
+    --background: 0 0% 98%; /* Almost White */
+    --foreground: 0 0% 17%; /* Near Black */
 
-    --muted: 338.6 50% 90%;
-    --muted-foreground: 338 10% 45%;
+    --muted: 0 0% 96%; /* Light Grey */
+    --muted-foreground: 0 0% 45%; /* Medium Grey */
 
-    --popover: 338.6 52.9% 98%;
-    --popover-foreground: 338 10% 26%;
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 0 0% 17%; /* Near Black */
 
-    --card: 338.6 52.9% 98%;
-    --card-foreground: 338 10% 26%;
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 0 0% 17%; /* Near Black */
 
-    --border: 339 29.1% 80%;
-    --input: 339 29.1% 88%;
+    --border: 0 0% 89%; /* Light Grey Border */
+    --input: 0 0% 100%; /* White Input Background */
 
-    --primary: 339 29.1% 63.7%; /* Dusty Rose */
-    --primary-foreground: 338.6 52.9% 98%; /* Light Pink for text on primary */
+    --primary: 0 0% 10%; /* Near Black */
+    --primary-foreground: 0 0% 98%; /* Almost White */
 
-    --secondary: 339 29.1% 85%; /* Lighter Dusty Rose */
-    --secondary-foreground: 338 10% 20%;
+    --secondary: 0 0% 92%; /* Light Grey */
+    --secondary-foreground: 0 0% 10%; /* Near Black */
 
-    --accent: 328.3 26.1% 52.5%; /* Mauve */
-    --accent-foreground: 338.6 52.9% 98%; /* Light Pink for text on accent */
+    --accent: 0 0% 95%; /* Very Light Grey (for hovers, selections) */
+    --accent-foreground: 0 0% 10%; /* Near Black */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%; /* Default Red */
+    --destructive-foreground: 0 0% 98%; /* Light text on Red */
 
-    --ring: 339 29.1% 63.7%; /* Dusty Rose */
+    --ring: 0 0% 10%; /* Near Black (for focus rings) */
 
     --radius: 0.5rem;
 
@@ -43,34 +44,36 @@
   }
 
   .dark {
-    --background: 338 10% 15%; /* Dark version of foreground */
-    --foreground: 338.6 52.9% 90%; /* Lighter version of background */
+    --background: 0 0% 8%; /* Very Dark Grey */
+    --foreground: 0 0% 90%; /* Light Grey */
 
-    --muted: 338 10% 25%;
-    --muted-foreground: 338.6 50% 60%;
+    --muted: 0 0% 18%; /* Dark Grey */
+    --muted-foreground: 0 0% 60%; /* Medium-Light Grey */
 
-    --popover: 338 10% 20%;
-    --popover-foreground: 338.6 52.9% 90%;
+    --popover: 0 0% 12%; /* Darker Grey */
+    --popover-foreground: 0 0% 90%; /* Light Grey */
 
-    --card: 338 10% 20%;
-    --card-foreground: 338.6 52.9% 90%;
+    --card: 0 0% 12%; /* Darker Grey */
+    --card-foreground: 0 0% 90%; /* Light Grey */
 
-    --border: 338 10% 30%;
-    --input: 338 10% 35%;
+    --border: 0 0% 22%; /* Medium-Dark Grey Border */
+    --input: 0 0% 15%; /* Dark Grey Input Background */
 
-    --primary: 339 29.1% 63.7%; /* Dusty Rose */
-    --primary-foreground: 338 10% 10%; /* Darker text on primary */
+    --primary: 0 0% 90%; /* Light Grey (Almost White) */
+    --primary-foreground: 0 0% 8%; /* Near Black */
 
-    --secondary: 328.3 26.1% 40%; /* Darker Mauve */
-    --secondary-foreground: 338.6 52.9% 90%;
+    --secondary: 0 0% 20%; /* Medium-Dark Grey */
+    --secondary-foreground: 0 0% 90%; /* Light Grey */
 
-    --accent: 328.3 26.1% 52.5%; /* Mauve */
-    --accent-foreground: 338 10% 10%; /* Darker text on accent */
+    --accent: 0 0% 18%; /* Dark Grey (for hovers, selections) */
+    --accent-foreground: 0 0% 90%; /* Light Grey */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72.2% 50.6%; /* Adjusted Red for dark mode */
+    --destructive-foreground: 0 0% 98%; /* Light text on Red */
 
-    --ring: 339 29.1% 63.7%; /* Dusty Rose */
+    --ring: 0 0% 90%; /* Light Grey (for focus rings) */
+
+    /* Radius remains the same */
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
