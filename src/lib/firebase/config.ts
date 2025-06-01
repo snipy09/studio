@@ -15,10 +15,10 @@ const firebaseConfigBase = {
 
 let firebaseConfig: any = { ...firebaseConfigBase };
 
-if (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
+if (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET && process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.trim() !== "") {
   firebaseConfig.storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
   console.info(
-    `Firebase is configured with storageBucket: ${firebaseConfig.storageBucket}. ` +
+    `Firebase client is configured with storageBucket: ${firebaseConfig.storageBucket}. ` +
     `Ensure appropriate GCS/Firebase Storage permissions and rules are set for the service account ` +
     `(e.g., your App Hosting service account or Genkit's service account) if you encounter 'AccessDenied' errors. ` +
     `This typically requires granting roles like 'Storage Object Viewer' (for reads) or 'Storage Object Creator' (for writes) ` +
@@ -27,8 +27,9 @@ if (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
   );
 } else {
   console.info(
-    `Firebase storageBucket is not configured (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not set). ` +
-    `Firebase Storage SDK features that rely on this configuration will not be available unless a bucket is implicitly determined.`
+    `Firebase client storageBucket is NOT configured (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not set or is empty). ` +
+    `Firebase Storage SDK features that rely on this specific client configuration (e.g., direct file uploads/downloads initiated by client code) will not be available unless a bucket is implicitly determined or configured elsewhere. ` +
+    `This can help avoid GCS permission errors if the backend service account lacks access to a default or previously specified bucket.`
   );
 }
 

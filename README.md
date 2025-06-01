@@ -72,10 +72,10 @@ Follow these instructions to set up and run FlowForge locally.
                 -   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
                 -   `NEXT_PUBLIC_FIREBASE_APP_ID`
                 -   `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (This one is optional, for Google Analytics)
-            -   **Firebase Storage Bucket (Optional)**:
-                -   The `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` variable (e.g., `your-project-id.appspot.com`) is only strictly necessary if your application directly uses Firebase Storage SDK features (like file uploads/downloads from your custom code).
-                -   If you set this variable, ensure that the service account used by your Firebase App Hosting backend (or other services like Genkit if they interact with this bucket) has the correct IAM permissions (e.g., "Storage Object Viewer", "Storage Object Admin") on this Google Cloud Storage bucket. You can manage these permissions in the Google Cloud Console under IAM.
-                -   If you are not using Firebase Storage features directly, you can leave this variable blank or remove the line from your `.env` file. This might help avoid potential GCS permission errors if the service account for your deployment environment lacks access to the specified bucket.
+            -   **Firebase Storage Bucket (Optional but Important for GCS Permissions)**:
+                -   The `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` variable (e.g., `your-project-id.appspot.com`) is primarily needed if your application client-side code *directly* uses Firebase Storage SDK features (like file uploads/downloads that you've custom-coded).
+                -   **If you set this variable**: The service account used by your Firebase App Hosting backend (or other services like Genkit if they interact with this bucket) **MUST** have the correct IAM permissions (e.g., "Storage Object Viewer" for reads, "Storage Object Admin" for more) on this specific Google Cloud Storage bucket. You manage these permissions in the Google Cloud Console under IAM & Admin.
+                -   **If you are NOT using Firebase Storage features directly in your client code, OR if you are encountering GCS permission errors (like "storage.objects.get access denied")**: It's often recommended to **leave `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` blank or remove the line entirely** from your `.env` file. This can prevent the Firebase client SDK from attempting interactions with a GCS bucket that the backend service account might not have permissions for, potentially avoiding such errors. The application will still function for its core features without this client-side bucket configuration if direct client-side storage operations are not used.
 
     -   Save the `.env` file.
 
@@ -145,3 +145,4 @@ Please ensure your code adheres to the existing style and linting rules.
 ## License
 
 This project is open source. (Consider adding a specific license like MIT if desired).
+
