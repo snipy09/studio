@@ -1,27 +1,48 @@
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 // import { getAnalytics, Analytics } from "firebase/analytics"; // Optional: if you plan to use Firebase Analytics
 
-const firebaseConfig = {
+const firebaseConfigBase = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Optional
 };
 
-// IMPORTANT PERMISSIONS NOTE FOR GCS (Google Cloud Storage):
+let firebaseConfig: any = { ...firebaseConfigBase };
+
+if (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
+  firebaseConfig.storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  console.info(
+    `Firebase is configured with storageBucket: ${firebaseConfig.storageBucket}. ` +
+    `Ensure appropriate GCS/Firebase Storage permissions and rules are set for the service account ` +
+    `(e.g., your App Hosting service account or Genkit's service account) if you encounter 'AccessDenied' errors. ` +
+    `This typically requires granting roles like 'Storage Object Viewer' (for reads) or 'Storage Object Creator' (for writes) ` +
+    `in Google Cloud IAM for the specified bucket. If your application does not directly use Firebase Storage SDK features for file uploads/downloads, ` +
+    `you might consider omitting NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET from your .env file to simplify permissions.`
+  );
+} else {
+  console.info(
+    `Firebase storageBucket is not configured (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not set). ` +
+    `Firebase Storage SDK features that rely on this configuration will not be available unless a bucket is implicitly determined.`
+  );
+}
+
+
+// IMPORTANT PERMISSIONS NOTE FOR GCS (Google Cloud Storage) in general:
 // If you specify `storageBucket` in your `firebaseConfig` (e.g., via NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
-// ensure that the necessary IAM permissions (like `storage.objects.get` for reading,
+// or if Genkit/other services attempt to access GCS:
+// Ensure that the necessary IAM permissions (like `storage.objects.get` for reading,
 // `storage.objects.create` for writing) are granted:
-// 1. For users: Check your Firebase Storage Rules in the Firebase Console.
-// 2. For service accounts (if your backend/Genkit interacts with GCS): Check IAM
-//    permissions in the Google Cloud Console for the service account running your code.
-// An "AccessDenied" error for GCS usually means these permissions are missing.
+// 1. For users accessing via Firebase Storage: Check your Firebase Storage Rules in the Firebase Console.
+// 2. For service accounts (e.g., your App Hosting service account, Genkit service account): Check IAM
+//    permissions in the Google Cloud Console for the service account identity.
+//    This service account needs permissions on the GCS bucket it's trying to access.
+// An "AccessDenied" error for GCS usually means these permissions are missing for the relevant identity.
 
 let app: FirebaseApp;
 let auth: Auth | null = null;
@@ -55,36 +76,15 @@ try {
     // db remains null
   }
 
-  // Optional: Initialize Analytics
-  // if (typeof window !== 'undefined') {
-  //   try {
-  //     analytics = getAnalytics(app);
-  //   } catch (e) {
-  //     console.warn(`Firebase getAnalytics failed: ${(e as Error).message}. Analytics will be unavailable.`);
-  //   }
-  // }
-
-  if (firebaseConfig.storageBucket) {
-    console.info(
-        `Firebase is configured with storageBucket: ${firebaseConfig.storageBucket}. ` +
-        `Ensure appropriate GCS/Firebase Storage permissions and rules are set if you encounter 'AccessDenied' errors related to storage.`
-    );
-  }
-
-
 } catch (initError) {
   console.error(
     `Critical Firebase app initialization failed: ${(initError as Error).message}. Firebase services will be largely unavailable.`
   );
-  // If initializeApp itself fails, app might not be valid.
-  // For safety, ensure 'app' is defined for export, though it might be a shell.
   if (!app!) {
-     // This case means Firebase is fundamentally broken.
-     // Assign a temporary, non-functional app object for type consistency if strictly needed,
-     // though using it would lead to further errors.
-     app = {} as FirebaseApp; // Or handle more gracefully by not exporting.
+     app = {} as FirebaseApp;
   }
 }
 
 
 export { app, auth, db };
+

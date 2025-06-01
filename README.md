@@ -1,3 +1,4 @@
+
 # FlowForge - Your AI-Powered Workflow Planner
 
 FlowForge is a Next.js application designed to help you visually plan workflows, manage tasks, and leverage AI to achieve your goals. It features a drag-and-drop interface, pre-built templates, an AI flow generator, and more, all built with Next.js, React, ShadCN UI, Tailwind CSS, and Genkit for AI functionalities.
@@ -63,15 +64,19 @@ Follow these instructions to set up and run FlowForge locally.
         -   **Firebase Project Configuration**:
             -   Go to the [Firebase Console](https://console.firebase.google.com/).
             -   Create a new Firebase project (or use an existing one).
-            -   In your project settings, find your web app's Firebase configuration details.
+            -   In your project settings, find your web app's Firebase configuration details (Project settings > General > Your apps > Firebase SDK snippet > Config).
             -   Fill in the following variables in your `.env` file with your Firebase project's credentials:
                 -   `NEXT_PUBLIC_FIREBASE_API_KEY`
                 -   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
                 -   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-                -   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
                 -   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
                 -   `NEXT_PUBLIC_FIREBASE_APP_ID`
                 -   `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (This one is optional, for Google Analytics)
+            -   **Firebase Storage Bucket (Optional)**:
+                -   The `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` variable (e.g., `your-project-id.appspot.com`) is only strictly necessary if your application directly uses Firebase Storage SDK features (like file uploads/downloads from your custom code).
+                -   If you set this variable, ensure that the service account used by your Firebase App Hosting backend (or other services like Genkit if they interact with this bucket) has the correct IAM permissions (e.g., "Storage Object Viewer", "Storage Object Admin") on this Google Cloud Storage bucket. You can manage these permissions in the Google Cloud Console under IAM.
+                -   If you are not using Firebase Storage features directly, you can leave this variable blank or remove the line from your `.env` file. This might help avoid potential GCS permission errors if the service account for your deployment environment lacks access to the specified bucket.
+
     -   Save the `.env` file.
 
     **Important**: The `.env` file contains sensitive credentials and should *not* be committed to version control. It is typically included in the `.gitignore` file.
@@ -140,4 +145,3 @@ Please ensure your code adheres to the existing style and linting rules.
 ## License
 
 This project is open source. (Consider adding a specific license like MIT if desired).
-```
