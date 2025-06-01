@@ -22,10 +22,12 @@ import { summarizeFlowDetails, type SummarizeFlowDetailsInput, type SummarizeFlo
 import Link from "next/link";
 
 export default function FlowDetailPage() {
-  const params = useParams();
+  const currentParams = useParams();
+  // Ensure flowId is explicitly a string or undefined.
+  const flowId: string | undefined = typeof currentParams?.flowId === 'string' ? currentParams.flowId : undefined;
+
   const router = useRouter();
   const { toast } = useToast();
-  const flowId = params.flowId as string;
 
   const [flow, setFlow] = useState<Flow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,23 +47,23 @@ export default function FlowDetailPage() {
 
   const [stepToAddTask, setStepToAddTask] = useState<Step | null>(null);
   const [taskDueDate, setTaskDueDate] = useState<Date | undefined>(undefined);
-  
+
   const updateFlowInStorage = useCallback((updatedFlow: Flow) => {
-    setFlow(updatedFlow); 
-    saveStoredFlow(updatedFlow); 
+    setFlow(updatedFlow);
+    saveStoredFlow(updatedFlow);
   }, []);
 
   const triggerAiSummary = useCallback(async (currentFlow: Flow) => {
     if (!currentFlow || (!currentFlow.description || currentFlow.description.trim().length < 10) && currentFlow.steps && currentFlow.steps.length > 0) {
       setAiSummaryLoading(true);
-      setAiGeneratedDetails(null); 
+      setAiGeneratedDetails(null);
       try {
         const input: SummarizeFlowDetailsInput = {
           flowName: currentFlow.name,
           stepNames: currentFlow.steps.map(s => s.name),
         };
         const result = await summarizeFlowDetails(input);
-        
+
         setAiGeneratedDetails(result);
 
         if (result.generatedDescription && (!currentFlow.description || currentFlow.description.trim().length < 10)) {
@@ -71,9 +73,9 @@ export default function FlowDetailPage() {
             updatedAt: new Date().toISOString(),
           };
           updateFlowInStorage(updatedFlowWithAiDesc);
-          setEditedFlowDescription(result.generatedDescription); 
+          setEditedFlowDescription(result.generatedDescription);
         }
-        
+
         toast({
           title: "AI Insights Generated",
           description: "Flow summary and details have been enhanced by AI.",
@@ -101,17 +103,30 @@ export default function FlowDetailPage() {
         setFlow(fetchedFlow);
         setEditedFlowName(fetchedFlow.name);
         setEditedFlowDescription(fetchedFlow.description || "");
-        
+
         if ((!fetchedFlow.description || fetchedFlow.description.trim().length < 10) && fetchedFlow.steps && fetchedFlow.steps.length > 0) {
             triggerAiSummary(fetchedFlow);
         }
-
+        setIsLoading(false);
       } else {
         toast({ title: "Error", description: "Flow not found.", variant: "destructive" });
         router.push("/dashboard");
+        // Keep loading true until redirect potentially happens or further state changes
+      }
+    } else {
+      // If flowId is not available (e.g. bad URL or param not ready yet)
+      // Check if running in browser context before router.push to avoid server-side errors with router
+      if (typeof window !== 'undefined') {
+        toast({ title: "Error", description: "Invalid flow URL.", variant: "destructive" });
+        router.push("/dashboard");
+      } else {
+        // On server, or if router cannot be used, just set loading to false.
+        // The render part will show "Flow not found".
+        setIsLoading(false);
       }
     }
-    setIsLoading(false);
+  // Removed currentParams from deps as flowId is the derived value we care about.
+  // Adding router and toast to deps as they are used.
   }, [flowId, router, toast, triggerAiSummary]);
 
 
@@ -177,29 +192,29 @@ export default function FlowDetailPage() {
     toast({ title: "Step Updated", description: `Step "${editingStep.name}" updated.` });
   };
 
-  const handleDeleteStep = (stepId: string) => {
+  const handleDeleteStep = (stepIdToDelete: string) => {
     if (!flow) return;
-    const stepToDelete = flow.steps.find(s => s.id === stepId);
+    const stepToDelete = flow.steps.find(s => s.id === stepIdToDelete);
     if (!stepToDelete) return;
 
-    const updatedSteps = flow.steps.filter(s => s.id !== stepId);
-    const updatedStepsOrder = flow.stepsOrder.filter(id => id !== stepId);
+    const updatedSteps = flow.steps.filter(s => s.id !== stepIdToDelete);
+    const updatedStepsOrder = flow.stepsOrder.filter(id => id !== stepIdToDelete);
     const updatedFlow = { ...flow, steps: updatedSteps, stepsOrder: updatedStepsOrder, updatedAt: new Date().toISOString() };
     updateFlowInStorage(updatedFlow);
     toast({ title: "Step Deleted", description: `Step "${stepToDelete.name}" deleted.`, variant: "destructive" });
   };
 
-  const handleStatusChange = (stepId: string, status: StepStatus) => {
+  const handleStatusChange = (stepIdToChange: string, status: StepStatus) => {
     if (!flow) return;
     const now = new Date().toISOString();
-    const updatedSteps = flow.steps.map(s => s.id === stepId ? { ...s, status, updatedAt: now } : s);
+    const updatedSteps = flow.steps.map(s => s.id === stepIdToChange ? { ...s, status, updatedAt: now } : s);
     const updatedFlow = { ...flow, steps: updatedSteps, updatedAt: now };
     updateFlowInStorage(updatedFlow);
   };
 
   const handleAddStepAsTask = () => {
     if (!stepToAddTask || !flow) return;
-    
+
     const newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'isCompleted'> = {
       name: stepToAddTask.name,
       flowId: flow.id,
@@ -214,7 +229,7 @@ export default function FlowDetailPage() {
     setStepToAddTask(null);
     setTaskDueDate(undefined);
   };
-  
+
   const getStepColor = (status: StepStatus) => {
     switch (status) {
       case "todo": return "bg-muted/50 border-muted";
@@ -223,7 +238,7 @@ export default function FlowDetailPage() {
       default: return "bg-card";
     }
   };
-  
+
   const getStepIcon = (status: StepStatus) => {
     switch (status) {
       case "todo": return <Palette className="h-5 w-5 text-muted-foreground" />;
@@ -233,19 +248,19 @@ export default function FlowDetailPage() {
     }
   };
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, stepId: string) => {
-    setDraggedStepId(stepId);
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, stepIdToDrag: string) => {
+    setDraggedStepId(stepIdToDrag);
     e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>, targetStepId: string) => {
-    e.preventDefault(); 
+    e.preventDefault();
     if (draggedStepId && draggedStepId !== targetStepId) {
       setDragOverStepId(targetStepId);
     }
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (_e: React.DragEvent<HTMLDivElement>) => {
     setDragOverStepId(null);
   };
 
@@ -265,7 +280,7 @@ export default function FlowDetailPage() {
 
     const [removed] = currentOrder.splice(draggedItemIndex, 1);
     currentOrder.splice(targetItemIndex, 0, removed);
-    
+
     const updatedFlow = { ...flow, stepsOrder: currentOrder, updatedAt: new Date().toISOString() };
     updateFlowInStorage(updatedFlow);
 
@@ -275,22 +290,25 @@ export default function FlowDetailPage() {
   };
 
 
-  if (isLoading && !flow) {
-    return <div className="container mx-auto py-8 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" /> <p>Loading flow...</p></div>;
+  if (isLoading || !flow) { // Combined check for loading state or if flow is null
+    // If flowId was initially undefined and useEffect is trying to redirect,
+    // this will show loading until redirection or if flow remains null.
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+        <p>{!flowId && !isLoading ? "Invalid flow URL. Redirecting..." : "Loading flow..."}</p>
+      </div>
+    );
   }
 
-  if (!flow) {
-    return <div className="container mx-auto py-8 text-center">Flow not found or could not be loaded.</div>;
-  }
-  
-  const orderedSteps = flow.stepsOrder.map(stepId => flow.steps.find(s => s.id === stepId)).filter(Boolean) as Step[];
-  
+  const orderedSteps = flow.stepsOrder.map(id => flow.steps.find(s => s.id === id)).filter(Boolean) as Step[];
+
   const shouldShowAiInsights = aiGeneratedDetails && !aiSummaryLoading && (flow.steps && flow.steps.length > 0);
-  const hasSuggestedResources = flow.suggestedResources && 
+  const hasSuggestedResources = flow.suggestedResources &&
     ((flow.suggestedResources.youtubeVideos && flow.suggestedResources.youtubeVideos.length > 0) ||
      (flow.suggestedResources.articles && flow.suggestedResources.articles.length > 0) ||
      (flow.suggestedResources.websites && flow.suggestedResources.websites.length > 0));
-  
+
   const shouldShowAiSection = shouldShowAiInsights || hasSuggestedResources;
 
 
@@ -340,7 +358,7 @@ export default function FlowDetailPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       {shouldShowAiSection && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {shouldShowAiInsights && aiGeneratedDetails?.insights && aiGeneratedDetails.insights.length > 0 && (
@@ -429,20 +447,20 @@ export default function FlowDetailPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="flowName" className="text-right text-sm font-medium">Name</Label>
-                <Input 
-                  id="flowName" 
-                  value={editedFlowName} 
+                <Input
+                  id="flowName"
+                  value={editedFlowName}
                   onChange={(e) => setEditedFlowName(e.target.value)}
-                  className="col-span-3" 
+                  className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="flowDescription" className="text-right text-sm font-medium">Description</Label>
-                <Textarea 
-                  id="flowDescription" 
-                  value={editedFlowDescription} 
+                <Textarea
+                  id="flowDescription"
+                  value={editedFlowDescription}
                   onChange={(e) => setEditedFlowDescription(e.target.value)}
-                  className="col-span-3" 
+                  className="col-span-3"
                   rows={3}
                 />
               </div>
@@ -456,9 +474,9 @@ export default function FlowDetailPage() {
       )}
 
       <div className="mb-6 flex gap-2">
-        <Input 
-          type="text" 
-          placeholder="New step name..." 
+        <Input
+          type="text"
+          placeholder="New step name..."
           value={newStepName}
           onChange={(e) => setNewStepName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleAddStep(); }}
@@ -468,21 +486,21 @@ export default function FlowDetailPage() {
           <PlusCircle className="mr-2 h-4 w-4" /> Add Step
         </Button>
       </div>
-      
+
       <div className="space-y-1">
         {orderedSteps.map((step) => (
-          <div 
+          <div
             key={step.id}
             draggable
             onDragStart={(e) => handleDragStart(e, step.id)}
             onDragOver={(e) => handleDragOver(e, step.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, step.id)}
-            className={`cursor-grab rounded-lg transition-all duration-150 ease-in-out 
+            className={`cursor-grab rounded-lg transition-all duration-150 ease-in-out
                         ${draggedStepId === step.id ? "opacity-50 ring-2 ring-primary shadow-2xl" : ""}
                         ${dragOverStepId === step.id && draggedStepId !== step.id ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""}`}
           >
-            <Card className={`shadow-md transition-all duration-300 ${getStepColor(step.status)} 
+            <Card className={`shadow-md transition-all duration-300 ${getStepColor(step.status)}
                            ${draggedStepId === step.id ? "transform scale-105" : ""}`}>
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="flex-shrink-0">{getStepIcon(step.status)}</div>
@@ -580,19 +598,19 @@ export default function FlowDetailPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right text-sm font-medium">Name</Label>
-                <Input id="name" value={editingStep.name} className="col-span-3" 
+                <Input id="name" value={editingStep.name} className="col-span-3"
                   onChange={(e) => setEditingStep(prev => prev ? {...prev, name: e.target.value} : null)}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right text-sm font-medium">Description</Label>
-                <Textarea id="description" value={editingStep.description || ''} className="col-span-3" 
+                <Textarea id="description" value={editingStep.description || ''} className="col-span-3"
                   onChange={(e) => setEditingStep(prev => prev ? {...prev, description: e.target.value} : null)}
                 />
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="priority" className="text-right text-sm font-medium">Priority</Label>
-                <Select 
+                <Select
                   value={editingStep.priority}
                   onValueChange={(value) => setEditingStep(prev => prev ? {...prev, priority: value as Priority} : null)}
                 >
@@ -606,7 +624,7 @@ export default function FlowDetailPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="difficulty" className="text-right text-sm font-medium">Difficulty</Label>
-                 <Select 
+                 <Select
                   value={editingStep.difficulty}
                   onValueChange={(value) => setEditingStep(prev => prev ? {...prev, difficulty: value as Difficulty} : null)}
                 >
@@ -620,7 +638,7 @@ export default function FlowDetailPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="estimatedTime" className="text-right text-sm font-medium">Est. Time</Label>
-                <Input id="estimatedTime" value={editingStep.estimatedTime || ''} className="col-span-3" 
+                <Input id="estimatedTime" value={editingStep.estimatedTime || ''} className="col-span-3"
                   placeholder="e.g., 2 hours, 1 day"
                   onChange={(e) => setEditingStep(prev => prev ? {...prev, estimatedTime: e.target.value} : null)}
                 />
@@ -658,3 +676,5 @@ export default function FlowDetailPage() {
     </div>
   );
 }
+
+    
