@@ -1,35 +1,61 @@
 
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import type { NextPage } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban } from "lucide-react";
+import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { CreateFlowDialog } from "@/components/flow/create-flow-dialog";
 import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog";
 import Image from "next/image";
-import type { Flow } from "@/lib/types"; // Use the main Flow type
-import { getAllStoredFlows, saveStoredFlow } from "@/lib/flow-storage";
+import type { Flow } from "@/lib/types";
+import { getAllStoredFlows, saveStoredFlow, deleteStoredFlowById } from "@/lib/flow-storage";
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
 
 
 const DashboardPage: NextPage = () => {
   const { user } = useAuth();
-  const [flows, setFlows] = React.useState<Flow[]>([]);
+  const { toast } = useToast();
+  const [flows, setFlows] = useState<Flow[]>([]);
+  const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
+  const [isAiGeneratorOpen, setIsAiGeneratorOpen] = useState(false);
+  const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
 
   useEffect(() => {
     setFlows(getAllStoredFlows());
   }, []);
 
-  const [isCreateFlowOpen, setIsCreateFlowOpen] = React.useState(false);
-  const [isAiGeneratorOpen, setIsAiGeneratorOpen] = React.useState(false);
-
   const handleAddFlow = (newFlow: Flow) => {
     const updatedFlows = saveStoredFlow(newFlow);
     setFlows(updatedFlows);
+  };
+
+  const openDeleteConfirmation = (flow: Flow) => {
+    setFlowToDelete(flow);
+  };
+
+  const handleConfirmDelete = () => {
+    if (flowToDelete) {
+      const updatedFlows = deleteStoredFlowById(flowToDelete.id);
+      setFlows(updatedFlows);
+      toast({ title: "Flow Deleted", description: `"${flowToDelete.name}" has been deleted.` });
+      setFlowToDelete(null);
+    }
   };
 
   return (
@@ -94,10 +120,22 @@ const DashboardPage: NextPage = () => {
                     Last updated: {formatDistanceToNow(new Date(flow.updatedAt), { addSuffix: true })}
                   </p>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex justify-between items-center pt-4">
                   <Link href={`/flow/${flow.id}`} passHref legacyBehavior>
-                    <Button className="w-full" variant="default">View Flow</Button>
+                    <Button variant="default">View Flow</Button>
                   </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-destructive hover:text-destructive/90" 
+                    onClick={(e) => { 
+                      e.stopPropagation(); // Prevent card click or other parent events
+                      openDeleteConfirmation(flow); 
+                    }}
+                    aria-label="Delete flow"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -117,6 +155,24 @@ const DashboardPage: NextPage = () => {
           </div>
         )}
       </div>
+
+      {flowToDelete && (
+        <AlertDialog open={!!flowToDelete} onOpenChange={(open) => !open && setFlowToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the flow "{flowToDelete.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setFlowToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
        <div className="mt-16 p-8 bg-card rounded-lg shadow-lg">
         <h3 className="text-2xl font-semibold mb-4 text-center font-headline">Unlock Your Potential with FlowForge</h3>
         <div className="grid md:grid-cols-3 gap-8 text-center">
