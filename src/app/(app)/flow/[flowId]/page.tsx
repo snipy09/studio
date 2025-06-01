@@ -13,11 +13,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Flow, Step, StepStatus, Priority, Difficulty } from "@/lib/types";
+import type { Flow, Step, StepStatus, Priority, Difficulty, FlowSuggestedResources, SuggestedResourceItem, SuggestedWebsiteItem } from "@/lib/types";
 import { getStoredFlowById, saveStoredFlow } from "@/lib/flow-storage";
-import { PlusCircle, Edit3, Trash2, CalendarIcon, Loader2, CheckCircle, Palette, Pencil, Sparkles, Wand2 } from "lucide-react";
+import { PlusCircle, Edit3, Trash2, CalendarIcon, Loader2, CheckCircle, Palette, Pencil, Sparkles, Wand2, Youtube, FileText, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { summarizeFlowDetails, type SummarizeFlowDetailsInput, type SummarizeFlowDetailsOutput } from '@/ai/flows/summarize-flow-details';
+import Link from "next/link";
 
 export default function FlowDetailPage() {
   const params = useParams();
@@ -66,7 +67,7 @@ export default function FlowDetailPage() {
             updatedAt: new Date().toISOString(),
           };
           updateFlowInStorage(updatedFlowWithAiDesc);
-          setEditedFlowDescription(result.generatedDescription);
+          setEditedFlowDescription(result.generatedDescription); // Keep edit dialog in sync
         }
         
         toast({
@@ -96,20 +97,9 @@ export default function FlowDetailPage() {
         setFlow(fetchedFlow);
         setEditedFlowName(fetchedFlow.name);
         setEditedFlowDescription(fetchedFlow.description || "");
-        // Trigger AI summary if description is missing/short and flow has steps
+        
         if ((!fetchedFlow.description || fetchedFlow.description.trim().length < 10) && fetchedFlow.steps && fetchedFlow.steps.length > 0) {
             triggerAiSummary(fetchedFlow);
-        } else if (fetchedFlow.description && fetchedFlow.description.trim().length >=10 && fetchedFlow.steps && fetchedFlow.steps.length > 0) {
-            // If description exists, still try to get AI insights for time/other details, but don't overwrite desc
-            // To avoid re-fetching insights every time if they were already fetched and description wasn't changed by AI:
-            // We could store aiGeneratedDetails in localStorage or check if a previous AI run already populated description
-            // For now, let's keep it simple: if a good description exists, we won't fetch AI details to prevent overwriting.
-            // Or, we can fetch but not update the description.
-            // Let's fetch AI details regardless if steps exist, but only update description if it's missing.
-            // The current triggerAiSummary logic already handles not overwriting a good description by AI.
-            // To show previously AI generated details, we would need to persist them.
-            // For this iteration, if a description exists, we won't run the AI summary to avoid confusion.
-            // The user's request was "if description is not added make ai make one".
         }
 
       } else {
@@ -263,17 +253,20 @@ export default function FlowDetailPage() {
   };
 
 
-  if (isLoading && !flow) { // Keep showing loader until flow is at least attempted to be fetched
+  if (isLoading && !flow) {
     return <div className="container mx-auto py-8 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" /> <p>Loading flow...</p></div>;
   }
 
   if (!flow) {
-    // This state might be hit if flowId is invalid and router.push to dashboard hasn't completed yet
-    // or if initial loading state is true but flow is null (before useEffect sets it)
     return <div className="container mx-auto py-8 text-center">Flow not found or could not be loaded.</div>;
   }
   
   const orderedSteps = flow.stepsOrder.map(stepId => flow.steps.find(s => s.id === stepId)).filter(Boolean) as Step[];
+  const hasSuggestedResources = flow.suggestedResources && 
+    ((flow.suggestedResources.youtubeVideos && flow.suggestedResources.youtubeVideos.length > 0) ||
+     (flow.suggestedResources.articles && flow.suggestedResources.articles.length > 0) ||
+     (flow.suggestedResources.websites && flow.suggestedResources.websites.length > 0));
+
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
@@ -306,6 +299,12 @@ export default function FlowDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
+              {aiGeneratedDetails.generatedDescription && (flow.description && flow.description.trim().length < 10) && (
+                 <div>
+                   <h4 className="font-medium text-foreground">AI Generated Summary:</h4>
+                   <p className="text-muted-foreground">{aiGeneratedDetails.generatedDescription}</p>
+                 </div>
+              )}
               {aiGeneratedDetails.estimatedTotalTime && (
                 <div>
                   <h4 className="font-medium text-foreground">Estimated Total Time:</h4>
@@ -322,12 +321,69 @@ export default function FlowDetailPage() {
                   </ul>
                 </div>
               )}
-               {(!aiGeneratedDetails.estimatedTotalTime && (!aiGeneratedDetails.insights || aiGeneratedDetails.insights.length === 0)) && (
+               {(!aiGeneratedDetails.estimatedTotalTime && (!aiGeneratedDetails.insights || aiGeneratedDetails.insights.length === 0)) && 
+                (!aiGeneratedDetails.generatedDescription || (flow.description && flow.description.trim().length >=10)) && (
                  <p className="text-muted-foreground">AI could not generate additional details for this flow at the moment.</p>
                )}
             </CardContent>
           </Card>
         )}
+
+      {hasSuggestedResources && (
+        <Card className="mb-8 shadow-md bg-muted/30">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold flex items-center">
+              <Sparkles className="mr-2 h-5 w-5 text-primary" />
+              Suggested Resources
+            </CardTitle>
+            <CardDescription>AI-powered suggestions to help you with this flow.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {flow.suggestedResources?.youtubeVideos && flow.suggestedResources.youtubeVideos.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-lg mb-2 flex items-center"><Youtube className="mr-2 h-5 w-5 text-red-600"/>YouTube Videos</h4>
+                <ul className="space-y-1 list-disc list-inside pl-2">
+                  {flow.suggestedResources.youtubeVideos.map((video, index) => (
+                    <li key={`yt-${index}`} className="text-sm">
+                      <Link href={video.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {video.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {flow.suggestedResources?.articles && flow.suggestedResources.articles.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-lg mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-blue-600"/>Articles & Blogs</h4>
+                <ul className="space-y-1 list-disc list-inside pl-2">
+                  {flow.suggestedResources.articles.map((article, index) => (
+                    <li key={`article-${index}`} className="text-sm">
+                      <Link href={article.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {article.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {flow.suggestedResources?.websites && flow.suggestedResources.websites.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-lg mb-2 flex items-center"><Globe className="mr-2 h-5 w-5 text-green-600"/>Websites & Tools</h4>
+                <ul className="space-y-1 list-disc list-inside pl-2">
+                  {flow.suggestedResources.websites.map((site, index) => (
+                    <li key={`site-${index}`} className="text-sm">
+                      <Link href={site.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {site.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
 
       {isEditFlowDetailsOpen && (

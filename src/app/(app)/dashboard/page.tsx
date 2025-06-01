@@ -1,12 +1,12 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import type { NextPage } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban, Trash2 } from "lucide-react";
+import { PlusCircle, Lightbulb, LayoutGrid, FolderKanban, Trash2, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,16 +16,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { CreateFlowDialog } from "@/components/flow/create-flow-dialog";
 import { AiFlowGeneratorDialog } from "@/components/flow/ai-flow-generator-dialog";
-import Image from "next/image";
-import type { Flow } from "@/lib/types";
+import type { Flow, FlowSuggestedResources } from "@/lib/types";
 import { getAllStoredFlows, saveStoredFlow, deleteStoredFlowById } from "@/lib/flow-storage";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { suggestFlowResources, type SuggestFlowResourcesInput } from "@/ai/flows/suggest-flow-resources";
 
 
 const DashboardPage: NextPage = () => {
@@ -35,15 +34,62 @@ const DashboardPage: NextPage = () => {
   const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
   const [isAiGeneratorOpen, setIsAiGeneratorOpen] = useState(false);
   const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
+  const [isFetchingResources, setIsFetchingResources] = useState(false);
 
   useEffect(() => {
     setFlows(getAllStoredFlows());
   }, []);
 
-  const handleAddFlow = (newFlow: Flow) => {
-    const updatedFlows = saveStoredFlow(newFlow);
-    setFlows(updatedFlows);
-  };
+  const handleAddFlow = useCallback(async (newFlowData: Omit<Flow, 'createdAt' | 'updatedAt' | 'id'> & { id?: string }) => {
+    setIsFetchingResources(true);
+    const now = new Date().toISOString();
+    const flowId = newFlowData.id || `flow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    const flowToSave: Flow = {
+      ...newFlowData,
+      id: flowId,
+      userId: user?.uid || "dummy-user-uid-123",
+      createdAt: now,
+      updatedAt: now,
+      steps: newFlowData.steps || [],
+      stepsOrder: newFlowData.stepsOrder || (newFlowData.steps || []).map(s => s.id),
+    };
+
+    // Initial save so flow appears quickly
+    let currentFlows = saveStoredFlow(flowToSave);
+    setFlows(currentFlows);
+    toast({ title: "Flow Created!", description: `"${flowToSave.name}" added. Fetching resources...` });
+
+    try {
+      const resourceInput: SuggestFlowResourcesInput = {
+        flowName: flowToSave.name,
+        flowDescription: flowToSave.description,
+      };
+      const resources = await suggestFlowResources(resourceInput);
+      
+      const flowWithResources: Flow = {
+        ...flowToSave,
+        suggestedResources: resources,
+        updatedAt: new Date().toISOString(), // Update timestamp
+      };
+      
+      currentFlows = saveStoredFlow(flowWithResources);
+      setFlows(currentFlows);
+      toast({ title: "Resources Added", description: `AI found some helpful resources for "${flowToSave.name}".` });
+
+    } catch (error: any) {
+      console.error("Error fetching resources for flow:", error);
+      toast({
+        title: "Resource Fetching Failed",
+        description: `Could not fetch AI resources for "${flowToSave.name}". You can try again later.`,
+        variant: "destructive",
+      });
+      // Flow is already saved without resources, which is fine.
+    } finally {
+      setIsFetchingResources(false);
+    }
+  }, [user?.uid, toast]);
+
 
   const openDeleteConfirmation = (flow: Flow) => {
     setFlowToDelete(flow);
@@ -79,8 +125,10 @@ const DashboardPage: NextPage = () => {
           size="lg"
           className="md:col-span-1"
           onClick={() => setIsCreateFlowOpen(true)}
+          disabled={isFetchingResources}
         >
-          <PlusCircle className="mr-2 h-5 w-5" /> Create New Flow
+          {isFetchingResources && isCreateFlowOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <PlusCircle className="mr-2 h-5 w-5" />}
+           Create New Flow
         </Button>
 
         <AiFlowGeneratorDialog
@@ -93,10 +141,18 @@ const DashboardPage: NextPage = () => {
           variant="outline"
           className="md:col-span-1"
           onClick={() => setIsAiGeneratorOpen(true)}
+          disabled={isFetchingResources}
         >
-          <Lightbulb className="mr-2 h-5 w-5" /> AI Flow Generator
+          {isFetchingResources && isAiGeneratorOpen ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Lightbulb className="mr-2 h-5 w-5" />}
+           AI Flow Generator
         </Button>
       </div>
+       {isFetchingResources && (
+        <div className="mb-6 flex items-center justify-center text-muted-foreground">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <span>Processing new flow and fetching resources...</span>
+        </div>
+      )}
 
       <div>
         <h2 className="text-2xl font-semibold tracking-tight mb-6 font-headline">Your Flows</h2>
@@ -143,6 +199,7 @@ const DashboardPage: NextPage = () => {
             </p>
             <Button
               onClick={() => setIsCreateFlowOpen(true)}
+              disabled={isFetchingResources}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Flow
             </Button>

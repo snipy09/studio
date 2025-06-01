@@ -1,3 +1,4 @@
+
 import type { User as FirebaseUser } from "firebase/auth";
 
 export interface UserProfile extends FirebaseUser {
@@ -24,6 +25,22 @@ export interface Step {
   updatedAt: string; // ISO date string
 }
 
+export interface SuggestedResourceItem {
+  title: string;
+  url: string;
+}
+
+export interface SuggestedWebsiteItem {
+  name: string;
+  url: string;
+}
+
+export interface FlowSuggestedResources {
+  youtubeVideos?: SuggestedResourceItem[];
+  articles?: SuggestedResourceItem[];
+  websites?: SuggestedWebsiteItem[];
+}
+
 export interface Flow {
   id: string;
   name: string;
@@ -35,6 +52,7 @@ export interface Flow {
   templateCategory?: string; // e.g., "Marketing", "Personal"
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
+  suggestedResources?: FlowSuggestedResources;
 }
 
 // export interface Attachment { // Future feature
@@ -45,7 +63,7 @@ export interface Flow {
 //   provider?: string; // e.g., 'google_drive', 'dropbox'
 // }
 
-export interface Template extends Omit<Flow, 'id' | 'userId' | 'createdAt' | 'updatedAt'> {
+export interface Template extends Omit<Flow, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'suggestedResources'> {
   id: string; // Template ID might be different from runtime Flow ID
   category: string;
 }
