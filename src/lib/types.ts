@@ -67,3 +67,29 @@ export interface Template extends Omit<Flow, 'id' | 'userId' | 'createdAt' | 'up
   id: string; // Template ID might be different from runtime Flow ID
   category: string;
 }
+
+// Types for GenerateDetailedDiscoveryPlanFlow
+export interface GenerateDetailedDiscoveryPlanInput {
+  energizingActivities: string;
+  solveProblem: string;
+  skillsToLearn: string;
+  currentChallenge: string;
+}
+
+export interface ProjectBreakdown {
+  name: string;
+  detailedRationale: string;
+  keySteps: string[];
+  potentialChallenges?: string[];
+  expectedOutcome: string;
+  suggestedResources?: FlowSuggestedResources;
+}
+
+export interface GenerateDetailedDiscoveryPlanOutput {
+  suggestedGoals: string[];
+  projectBreakdowns: ProjectBreakdown[];
+}
+
+// (The old GenerateGoalsInput and GenerateGoalsOutput can be removed or kept if used elsewhere,
+// but the new flow will use GenerateDetailedDiscoveryPlanInput/Output)
+export type { GenerateGoalsInput, GenerateGoalsOutput } from "@/ai/flows/generate-goals-flow";

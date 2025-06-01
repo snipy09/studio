@@ -2,28 +2,36 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Lightbulb, Loader2, Sparkles } from "lucide-react";
-import { generateGoalsFromReflection, type GenerateGoalsInput, type GenerateGoalsOutput } from '@/ai/flows/generate-goals-flow';
+import { Lightbulb, Sparkles, Send } from "lucide-react";
+// Removed generateGoalsFromReflection import as AI call moves to results page
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import type { GenerateDetailedDiscoveryPlanInput } from '@/lib/types';
 
 const formSchema = z.object({
-  energizingActivities: z.string().min(10, "Please provide a bit more detail."),
-  solveProblem: z.string().min(10, "Please elaborate slightly."),
-  skillsToLearn: z.string().min(10, "Describe the skills in a bit more detail."),
-  currentChallenge: z.string().min(10, "Explain the challenge further."),
+  energizingActivities: z.string().min(10, "Please provide a bit more detail (at least 10 characters)."),
+  solveProblem: z.string().min(10, "Please elaborate slightly (at least 10 characters)."),
+  skillsToLearn: z.string().min(10, "Describe the skills in a bit more detail (at least 10 characters)."),
+  currentChallenge: z.string().min(10, "Explain the challenge further (at least 10 characters)."),
 });
+
+export const DISCOVERY_DATA_LOCAL_STORAGE_KEY = "discoveryFormData";
 
 export default function DiscoverPage() {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [aiResults, setAiResults] = useState<GenerateGoalsOutput | null>(null);
+  const router = useRouter();
+  // isLoading is now primarily for form submission, not AI call on this page
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // AI results state is removed as results are shown on a new page
+  // const [aiResults, setAiResults] = useState<GenerateGoalsOutput | null>(null);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,28 +44,31 @@ export default function DiscoverPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    setAiResults(null);
+    setIsSubmitting(true);
     try {
-      const input: GenerateGoalsInput = {
+      const inputForNextPage: GenerateDetailedDiscoveryPlanInput = {
         energizingActivities: values.energizingActivities,
         solveProblem: values.solveProblem,
         skillsToLearn: values.skillsToLearn,
         currentChallenge: values.currentChallenge,
       };
-      const result = await generateGoalsFromReflection(input);
-      setAiResults(result);
-      toast({ title: "Ideas Generated!", description: "Check out your personalized suggestions below." });
+      
+      // Store data in localStorage for the results page
+      localStorage.setItem(DISCOVERY_DATA_LOCAL_STORAGE_KEY, JSON.stringify(inputForNextPage));
+      
+      toast({ title: "Reflections Captured!", description: "Taking you to your personalized insights..." });
+      router.push('/discover/results');
+
     } catch (error: any) {
-      console.error("Goal Generation error:", error);
+      console.error("Error during form submission or redirection:", error);
       toast({
-        title: "AI Error",
-        description: error.message || "An unexpected error occurred with the AI.",
+        title: "Submission Error",
+        description: error.message || "An unexpected error occurred while preparing your insights.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      setIsSubmitting(false); // Only set to false on error here, otherwise page navigates away
     }
+    // No finally block to setIsSubmitting(false) because successful submission navigates away
   }
 
   return (
@@ -68,7 +79,7 @@ export default function DiscoverPage() {
           Discover Your Next Big Thing
         </h1>
         <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Answer a few questions to help our AI understand you better and suggest potential goals or projects you might find fulfilling.
+          Answer a few questions to help our AI understand you better. Your insights will be generated on the next page.
         </p>
       </div>
 
@@ -132,16 +143,16 @@ export default function DiscoverPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? (
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Ideas...
+                    <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
+                    Processing...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Get Inspired!
+                    <Send className="mr-2 h-4 w-4" />
+                    Generate My Inspired Plan
                   </>
                 )}
               </Button>
@@ -150,54 +161,7 @@ export default function DiscoverPage() {
         </CardContent>
       </Card>
 
-      {aiResults && (
-        <Card className="max-w-3xl mx-auto mt-10 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Sparkles className="mr-2 h-6 w-6 text-primary" />
-              Your AI-Generated Ideas
-            </CardTitle>
-            <CardDescription>Here are some goals and project suggestions based on your reflections.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {aiResults.suggestedGoals && aiResults.suggestedGoals.length > 0 && (
-              <div>
-                <h3 className="text-xl font-semibold mb-2 font-headline">Suggested Goals</h3>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  {aiResults.suggestedGoals.map((goal, index) => (
-                    <li key={`goal-${index}`}>{goal}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {aiResults.projectSuggestions && aiResults.projectSuggestions.length > 0 && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3 font-headline">Project Ideas</h3>
-                <div className="space-y-4">
-                  {aiResults.projectSuggestions.map((project, index) => (
-                    <div key={`project-${index}`} className="p-4 border rounded-md bg-muted/30">
-                      <h4 className="font-semibold text-lg mb-1">{project.name}</h4>
-                      {project.firstSteps && project.firstSteps.length > 0 && (
-                        <>
-                          <p className="text-sm font-medium text-muted-foreground mb-1">First Steps:</p>
-                          <ul className="list-decimal list-inside text-sm text-muted-foreground space-y-0.5 pl-2">
-                            {project.firstSteps.map((step, stepIndex) => (
-                              <li key={`project-${index}-step-${stepIndex}`}>{step}</li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-             {!aiResults.suggestedGoals?.length && !aiResults.projectSuggestions?.length && (
-                <p className="text-muted-foreground text-center py-4">The AI couldn't generate specific suggestions this time. Try rephrasing your answers or providing more detail.</p>
-             )}
-          </CardContent>
-        </Card>
-      )}
+      {/* AI results display section is removed from this page */}
     </div>
   );
 }
